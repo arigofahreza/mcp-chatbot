@@ -1,0 +1,9 @@
+python-dotenv
+mcp[cli]
+colorama
+openai
+requests
+streamlit
+oracledb
+loguru
+sqlite-vec

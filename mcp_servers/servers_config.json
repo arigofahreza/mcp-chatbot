@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "unified": {
+            "command": "uv",
+            "args": [
+                "run",
+                "./mcp_servers/server.py"
+            ]
+        }
+    }
+}
