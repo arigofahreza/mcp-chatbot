@@ -1,19 +1,11 @@
 import json
-import sqlite3
-from typing import List, Optional, Any, Coroutine
-
-import oracledb
-import requests
-import sqlite_vec
-from loguru import logger
+from typing import List, Optional
 from mcp.server.fastmcp import FastMCP
-from dotenv import dotenv_values
 
+from connection.database import get_sqlite_client, get_oracle_client, get_postgres_client
 from models.base_model import Metadata
-from utils.helpers import serialize_f32
 from utils.query import generate_sqlite_table, generate_sqlite_insert, generate_sqlite_select, generate_sqlite_update, \
-    generate_sqlite_delete, generate_sqlite_select_all, generate_sqlite_vector, generate_sqlite_insert_vector, \
-    generate_sqlite_delete_vector, generate_sqlite_select_vector, generate_sqlite_select_by_id
+    generate_sqlite_delete, generate_sqlite_vector
 
 mcp = FastMCP('unified')
 
@@ -22,58 +14,37 @@ _sqlite_client = None
 _sqlite_cursor = None
 _oracle_client = None
 _oracle_cursor = None
-_embedding_provider = None
-_embedding_model = None
+_postgres_client = None
+_postgres_cursor = None
 
 
-def get_env():
-    return dotenv_values(".env")
-
-
-def get_sqlite_client():
+def sqlite_client():
     """Get or create the global Sqlite3 client instance"""
     global _sqlite_client
     global _sqlite_cursor
-    environment = get_env()
     if _sqlite_client is None:
-        _sqlite_client = sqlite3.connect(environment.get('SQLITE_DATABASE'))
-        _sqlite_client.row_factory = sqlite3.Row
-        _sqlite_client.execute("PRAGMA journal_mode=WAL")
-        _sqlite_cursor = _sqlite_client.cursor()
-        _sqlite_client.enable_load_extension(True)
-        sqlite_vec.load(_sqlite_client)
-        _sqlite_client.enable_load_extension(False)
+        _sqlite_client, _sqlite_cursor = get_sqlite_client()
+        return _sqlite_client, _sqlite_cursor
     return _sqlite_client, _sqlite_cursor
 
-
-def get_oracle_client():
+def oracle_client():
     """Get or create the global Oracle client instance"""
     global _oracle_client
     global _oracle_cursor
-    environment = get_env()
     if _oracle_client is None:
-        _oracle_client = oracledb.connect(
-            user=environment.get('ORACLE_USER'),
-            password=environment.get('ORACLE_PASSWORD'),
-            dsn=environment.get('ORACLE_DSN'),  # e.g., "localhost/XEPDB1"
-        )
-        _oracle_cursor = _oracle_client.cursor()
+        _oracle_client, _oracle_cursor = get_oracle_client()
     return _oracle_client, _oracle_cursor
 
-
-def get_embedding_provider():
-    """Get or create the global LLM Embedding client instance"""
-    global _embedding_provider
-    global _embedding_model
-    environment = get_env()
-    if _embedding_provider is None:
-        _embedding_provider = environment.get('OLLAMA_URL')
-        _embedding_model = environment.get('EMBEDDING_MODEL')
-    return _embedding_provider, _embedding_model
-
+def postgres_client():
+    """Get or create the global Postgre client instance"""
+    global _postgres_client
+    global _postgres_cursor
+    if _postgres_client is None:
+        _postgres_client, _postgres_cursor = get_postgres_client()
+    return _postgres_client, _postgres_cursor
 
 def create_metadata_table():
-    conn, cur = get_sqlite_client()
+    conn, cur = sqlite_client()
     try:
         query = generate_sqlite_table()
         cur.execute(query)
@@ -83,7 +54,7 @@ def create_metadata_table():
 
 
 def create_vector_table():
-    conn, cur = get_sqlite_client()
+    conn, cur = sqlite_client()
     try:
         query = generate_sqlite_vector()
         cur.execute(query)
@@ -108,7 +79,7 @@ async def metadata_create(
             metadatas: List metadata which describes the schema and metadata of the table, including column names, data types, and descriptions of each column.
 
     """
-    conn, cur = get_sqlite_client()
+    conn, cur = sqlite_client()
     try:
         query = generate_sqlite_insert()
         json_metadata = json.dumps([metadata.model_dump_json() for metadata in metadatas])
@@ -133,7 +104,7 @@ async def metadata_get(
         Returns:
             List of metadata tables
     """
-    conn, cur = get_sqlite_client()
+    conn, cur = sqlite_client()
     try:
         query = generate_sqlite_select()
         cur.execute(query, (limit, offset))
@@ -159,7 +130,7 @@ async def metadata_update(
             metadata: A new metadata which describes the schema and metadata of the table, including column names, data types, and descriptions of each column. Provide previous value if no update
 
     """
-    conn, cur = get_sqlite_client()
+    conn, cur = sqlite_client()
     try:
         query = generate_sqlite_update()
         json_metadata = metadata.model_dump_json()
@@ -179,7 +150,7 @@ async def metadata_delete(
         Args:
             table_name: Name of the table metadata to delete
     """
-    conn, cur = get_sqlite_client()
+    conn, cur = sqlite_client()
     try:
         query = generate_sqlite_delete()
         cur.execute(query, table_name)
@@ -188,80 +159,8 @@ async def metadata_delete(
     except Exception as e:
         raise Exception(f"Failed to delete metadata: {str(e)}") from e
 
-
-def embedding(data: str) -> dict:
-    provider, model = get_embedding_provider()
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    json_data = {
-        'model': model,
-        'input': data
-    }
-
-    response = requests.request('POST', provider, headers=headers, data=json.dumps(json_data))
-    if response.status_code == 200:
-        return response.json()
-    return {}
-
-
 @mcp.tool()
-async def sync_metadata():
-    """Synchronize and re-create all metadata vector in sqlite database including delete previous metadata and add new metadata"""
-    conn, cur = get_sqlite_client()
-    try:
-        query = generate_sqlite_select_all()
-        cur.execute(query)
-        rows = cur.fetchall()
-        results = [dict(row) for row in rows]
-        embedding_results = embedding(json.dumps(results))
-        datas = []
-        if embedding_results:
-            for index, result in enumerate(embedding_results.get('embeddings')):
-                datas.append((index + 1, serialize_f32(result)))
-        delete_query = generate_sqlite_delete_vector()
-        cur.execute(delete_query)
-        conn.commit()
-        insert_query = generate_sqlite_insert_vector()
-        cur.executemany(insert_query, datas)
-        conn.commit()
-        return f"Successfully sync metadata"
-    except Exception as e:
-        raise Exception(f"Failed to sync metadata: {str(e)}") from e
-
-@mcp.resource('tables://{prompt}')
-async def get_relevant_tables(prompt: str):
-    """Resource to get relevant table to get schema and metadata from vector db to improve context.
-
-        Args:
-            prompt: Prompt from user input as an identifier for metadata table
-        Returns:
-            A metadata info from table
-    """
-    conn, cur = get_sqlite_client()
-    try:
-        query = generate_sqlite_select_vector()
-        embedding_results = embedding(prompt)
-        datas = []
-        if embedding_results:
-            embeddings = embedding_results.get('embeddings')
-            datas.append(serialize_f32(embeddings[0]))
-        cur.execute(query, datas)
-        rows = cur.execute(query, datas).fetchall()
-        results = [dict(row) for row in rows]
-        result = results[0]
-        rowid = result.get('rowid')
-        select_query = generate_sqlite_select_by_id()
-        cur.execute(select_query, (rowid,))
-        rows = cur.fetchall()
-        metadata_results = [dict(row) for row in rows]
-        return metadata_results[0]
-    except Exception as e:
-        raise Exception(f"Failed to get relevant table: {str(e)}") from e
-
-
-@mcp.tool()
-async def data_get(query: str) -> List[dict]:
+async def oracle_data_get(query: str) -> List[dict]:
     """Fetch all the result from oracle database with provided query
 
         Args:
@@ -270,14 +169,32 @@ async def data_get(query: str) -> List[dict]:
         Returns:
             List of result data
     """
-    conn, cur = get_oracle_client()
+    conn, cur = oracle_client()
     try:
-        cur.execute(query)
+        cur.execute(query.replace(';', ''))
         columns = [col[0] for col in cur.description]
         results = [dict(zip(columns, row)) for row in cur.fetchall()]
         return results
     except Exception as e:
         raise Exception(f"Failed to get data from oracle: {str(e)}") from e
+
+@mcp.tool()
+async def postgres_data_get(query: str) -> List[dict]:
+    """Fetch all the result from postgres database with provided query
+
+        Args:
+            query: SQL query that LLM generated from user input prompt
+
+        Returns:
+            List of result data
+    """
+    conn, cur = postgres_client()
+    try:
+        cur.execute(query.replace(';', ''))
+        result = cur.fetchall()
+        return [dict(row) for row in result]
+    except Exception as e:
+        raise Exception(f"Failed to get data from postgres: {str(e)}") from e
 
 
 def main():
@@ -286,9 +203,9 @@ def main():
     create_vector_table()
     print("Successfully Created all required tables")
     try:
-        get_sqlite_client()
-        get_oracle_client()
-        get_embedding_provider()
+        sqlite_client()
+        oracle_client()
+        postgres_client()
         print("Successfully initialized All clients")
     except Exception as e:
         print(f"Failed to initialize All client: {str(e)}")

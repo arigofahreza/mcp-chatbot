@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import shutil
-import traceback
 from contextlib import AsyncExitStack
 from typing import Any, List
 
@@ -40,7 +39,6 @@ class MCPClient:
             if self.config.get("env")
             else None,
         )
-        current_directory = os.getcwd()
         try:
             stdio_transport = await self.exit_stack.enter_async_context(
                 stdio_client(server_params)
@@ -52,7 +50,6 @@ class MCPClient:
             await session.initialize()
             self.session = session
         except Exception as e:
-            traceback.print_exc()
             logging.error(f"Error initializing server {self.name}: {e}")
             await self.cleanup()
             raise

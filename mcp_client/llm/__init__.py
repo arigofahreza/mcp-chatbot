@@ -24,11 +24,16 @@ def create_llm_client(
     """
     if provider == "openai":
         return OpenAIClient(
-            config=config
+            embedding_model_name=config.llm_embedding_model_name,
+            model_name=config.llm_model_name,
+            api_key=config.llm_api_key,
+            base_url=config.llm_base_url,
         )
     elif provider == "ollama":
         return OllamaClient(
-            config=config
+            embedding_mode_name=config.ollama_embedding_model_name,
+            model_name=config.ollama_model_name,
+            api_base=config.ollama_base_url,
         )
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")

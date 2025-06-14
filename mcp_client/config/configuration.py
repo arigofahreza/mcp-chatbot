@@ -3,7 +3,6 @@ import os
 from typing import Any, Optional
 
 import dotenv
-from dotenv import dotenv_values
 
 
 class Configuration:
@@ -11,20 +10,21 @@ class Configuration:
 
     def __init__(self) -> None:
         """Initialize configuration with environment variables."""
-        self.environment = self.load_env()
-        self._llm_api_key = self.environment.get("LLM_API_KEY")
-        self._llm_base_url = self.environment.get("LLM_BASE_URL")
-        self._llm_model_name = self.environment.get("LLM_MODEL_NAME")
-        self._llm_embedding_model_name = self.environment.get('LLM_EMBEDDING_MODEL_NAME')
+        self.load_env()
+        self._llm_api_key = os.getenv("LLM_API_KEY")
+        self._llm_base_url = os.getenv("LLM_BASE_URL")
+        self._llm_model_name = os.getenv("LLM_MODEL_NAME")
+        self._llm_embedding_model_name = os.getenv('LLM_EMBEDDING_MODEL_NAME')
 
-        self._ollama_embedding_model_name = self.environment.get('OLLAMA_EMBEDDING_MODEL_NAME')
-        self._ollama_model_name = self.environment.get("OLLAMA_MODEL_NAME")
-        self._ollama_base_url = self.environment.get("OLLAMA_BASE_URL")
+        self._ollama_embedding_model_name = os.getenv('OLLAMA_EMBEDDING_MODEL_NAME')
+        self._ollama_model_name = os.getenv("OLLAMA_MODEL_NAME")
+        self._ollama_base_url = os.getenv("OLLAMA_BASE_URL")
+
 
     @staticmethod
-    def load_env() -> dict:
+    def load_env() -> None:
         """Load environment variables from .env file."""
-        return dotenv_values(".env")
+        dotenv.load_dotenv()
 
     @staticmethod
     def load_config(file_path: str) -> dict[str, Any]:
@@ -82,13 +82,13 @@ class Configuration:
 
     @property
     def llm_embedding_model_name(self) -> str:
-        """Get the Open AI LLM embedding model name.
+        """Get the LLM embedding model name.
 
         Returns:
             The embedding model name as a string.
 
         Raises:
-            ValueError: If the model name is not found in environment variables.
+            ValueError: If the embedding model name is not found in environment variables.
         """
         if not self._llm_embedding_model_name:
             raise ValueError("LLM_EMBEDDING_MODEL_NAME not found in environment variables")
@@ -99,13 +99,13 @@ class Configuration:
         """Get the Ollama embedding model name.
 
         Returns:
-            The embedding model name as a string.
+            The Ollama embedding model name as a string.
 
         Raises:
-            ValueError: If the model name is not found in environment variables.
+            ValueError: If the Ollama embedding model name is not found in environment variables.
         """
         if not self._ollama_embedding_model_name:
-            raise ValueError("OLLAMA_EMBEEDING_MODEL_NAME not found in environment variables")
+            raise ValueError("OLLAMA_EMBEDDING_MODEL_NAME not found in environment variables")
         return self._ollama_embedding_model_name
 
 
@@ -115,9 +115,6 @@ class Configuration:
 
         Returns:
             The model name as a string.
-
-        Raises:
-            ValueError: If the model name is not found in environment variables.
         """
         if not self._ollama_model_name:
             raise ValueError("OLLAMA_MODEL_NAME not found in environment variables")
@@ -129,9 +126,6 @@ class Configuration:
 
         Returns:
             The base URL as a string.
-
-        Raises:
-            ValueError: If the model name is not found in environment variables.
         """
         if not self._ollama_base_url:
             raise ValueError("OLLAMA_BASE_URL not found in environment variables")

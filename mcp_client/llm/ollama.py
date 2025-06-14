@@ -3,7 +3,8 @@ from typing import Optional
 
 import dotenv
 import requests
-from dotenv import dotenv_values
+
+from mcp_servers.utils.helpers import serialize_f32
 
 dotenv.load_dotenv()
 
@@ -11,11 +12,15 @@ dotenv.load_dotenv()
 class OllamaClient:
     def __init__(
             self,
-            config
+            embedding_mode_name: Optional[str] = None,
+            model_name: Optional[str] = None,
+            api_base: Optional[str] = None,
     ):
-        self.embedding_model_name = config.ollama_embedding_model_name
-        self.model_name = config.ollama_model_name
-        self.api_base = config.ollama_base_url
+        self.embedding_model_name = embedding_mode_name or os.getenv('OLLAMA_EMBEDDING_MODEL_NAME')
+        self.model_name = model_name or os.getenv("OLLAMA_MODEL_NAME")
+        self.api_base = api_base or os.getenv(
+            "OLLAMA_API_BASE", "http://localhost:11434"
+        )
 
     def get_response(self, messages: list[dict[str, str]]) -> str:
         """Get a response from the Ollama LLM.
@@ -78,26 +83,38 @@ class OllamaClient:
                 except json.JSONDecodeError:
                     continue
 
-    def get_embedding_response(self, message: str) -> dict:
-        """Get an embedding response from the Ollama LLM.
+    def get_embedding_response(self, datas: list[str]) -> list:
+        """Get a response from the Ollama Embedding LLM.
 
         Args:
-            message: A message dictionaries to embed with.
+            datas: list of sentence to embed.
 
         Returns:
-            The LLM's response as a dict json http response.
+            The Ollama LLM's embedding response as a list.
         """
-        headers = {
-            'Content-Type': 'application/json',
-        }
-
+        # Ollama API expects a specific format for the request
         response = requests.post(
             f"{self.api_base}/api/embed",
             json={
-                'model': self.embedding_model_name,
-                'input': message
+                "model": self.embedding_model_name,
+                "input": datas,
             },
-            headers=headers
         )
         response.raise_for_status()
-        return response.json()
+        data = []
+        for index, record in enumerate(response.json().get('embeddings')):
+            data.append((index, serialize_f32(record)))
+        return data
+
+
+if __name__ == "__main__":
+    client = OllamaClient(
+        model_name="deepseek-r1:32b", api_base="http://localhost:11434"
+    )
+    # Testing
+    print(client.get_response([{"role": "user", "content": "你是谁？"}]))
+
+    # Testing stream response
+    print("\nStreaming response:")
+    for chunk in client.get_stream_response([{"role": "user", "content": "你是谁？"}]):
+        print(chunk, end="", flush=True)

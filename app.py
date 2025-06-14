@@ -3,16 +3,14 @@ import json
 import os
 import re
 import sys
+import traceback
 from contextlib import AsyncExitStack
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
 
-from mcp_client.chat import ChatSession
-from mcp_client.config.configuration import Configuration
-from mcp_client.llm import create_llm_client
-from mcp_client.mcp import MCPTool, MCPClient
+from mcp_servers.utils.helpers import sync_metadata
 
 if sys.platform == "win32":
     # The default event loop policy for Windows is SelectorEventLoop
@@ -25,7 +23,10 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
 
 # Assuming these imports exist and work correctly
-
+from mcp_client import Configuration, MCPClient  # noqa: E402
+from mcp_client.chat import ChatSession  # noqa: E402
+from mcp_client.llm import create_llm_client  # noqa: E402
+from mcp_client.mcp.mcp_tool import MCPTool  # noqa: E402
 
 # --- Streamlit Logo Configuration ---
 st.logo(
@@ -35,7 +36,7 @@ st.logo(
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(page_title="MCP Chatbot", layout="wide")
-st.title("🤖 Sibernetik MCP Chatbot")
+st.title("⚙️ MCP Chatbot - Interactive Agent")
 st.caption(
     "A chatbot that uses the Model Context Protocol (MCP) to interact with tools."
 )
@@ -129,33 +130,16 @@ async def get_mcp_tools(force_refresh=False) -> Dict[str, List[MCPTool]]:
                 tools = await client.list_tools()
                 tools_dict[name] = tools
             except Exception as e:
+                traceback.print_exc()
                 st.sidebar.error(f"Error fetching tools from {name}: {e}")
 
     st.session_state.mcp_tools_cache = tools_dict
     return tools_dict
 
 
-def render_sidebar(mcp_tools: Optional[Dict[str, List[MCPTool]]] = None):
-    """Render the sidebar with settings, MCP tools, and control buttons."""
+def render_sidebar(mcp_tools: Optional[Dict[str, List[MCPTool]]] = None, llm_client = None):
+    """Render the sidebar with sync, settings, MCP tools, and control buttons."""
     with st.sidebar:
-        st.header("Settings")
-
-        # --- Clear Chat Button ---
-        if st.button("🧹 Clear Chat", use_container_width=True):
-            # Clear chat history
-            st.session_state.messages = []
-            # Reset chat session state variables
-            st.session_state.chat_session = None
-            st.session_state.session_config_hash = None
-            # Note: We don't explicitly close the AsyncExitStack here,
-            # as it's difficult to do reliably from a synchronous button click
-            # before rerun. The logic in process_chat handles cleanup when
-            # a *new* session is created due to config change or None state.
-            st.session_state.active_mcp_clients = []
-            st.session_state.mcp_client_stack = None
-            st.session_state.history_messages = []
-            st.toast("Chat cleared!", icon="🧹")
-            st.rerun()  # Rerun the app to reflect the cleared state
 
         llm_tab, mcp_tab = st.tabs(["LLM", "MCP"])
         with llm_tab:
@@ -176,7 +160,6 @@ def render_sidebar(mcp_tools: Optional[Dict[str, List[MCPTool]]] = None):
                 st.session_state.active_mcp_clients = []
                 st.session_state.mcp_client_stack = None
                 st.toast("Tools refreshed and session reset.", icon="🔄")
-                st.rerun()
 
             if not mcp_tools:
                 st.info("No MCP tools loaded or configured.")
@@ -195,6 +178,29 @@ def render_sidebar(mcp_tools: Optional[Dict[str, List[MCPTool]]] = None):
                             st.json(tool.input_schema)
                         if idx < total_tools - 1:
                             st.divider()
+
+        st.header("🔄 Synchronized")
+        if st.button("📂 Vector DB", use_container_width=True):
+            sync_metadata(llm_client)
+            st.toast("DB Synchronized!", icon='✅')
+
+        st.header("⚙️ Settings")
+        # --- Clear Chat Button ---
+        if st.button("🧹 Clear Chat", use_container_width=True):
+            # Clear chat history
+            st.session_state.messages = []
+            # Reset chat session state variables
+            st.session_state.chat_session = None
+            st.session_state.session_config_hash = None
+            # Note: We don't explicitly close the AsyncExitStack here,
+            # as it's difficult to do reliably from a synchronous button click
+            # before rerun. The logic in process_chat handles cleanup when
+            # a *new* session is created due to config change or None state.
+            st.session_state.active_mcp_clients = []
+            st.session_state.mcp_client_stack = None
+            st.session_state.history_messages = []
+            st.toast("Chat cleared!", icon="🧹")
+
 
         # --- About Tabs ---
         id_about_tab, en_about_tab = st.tabs(["Deskripsi", "Description"])
@@ -421,6 +427,7 @@ def get_config_hash(config: Configuration, provider: str) -> int:
     if provider == "openai":
         relevant_config.update(
             {
+                "embedding_model_name": config._llm_embedding_model_name,
                 "model": config._llm_model_name,
                 "api_key": config._llm_api_key,
                 "base_url": config._llm_base_url,
@@ -429,6 +436,7 @@ def get_config_hash(config: Configuration, provider: str) -> int:
     else:  # ollama
         relevant_config.update(
             {
+                "embedding_model_name": config._ollama_embedding_model_name,
                 "model": config._ollama_model_name,
                 "base_url": config._ollama_base_url,
             }
@@ -464,7 +472,7 @@ async def initialize_mcp_clients(
     return clients
 
 
-async def process_chat(user_input: str):
+async def process_chat(user_input: str, llm_client):
     """Handles user input, interacts with the backend."""
 
     # 1. Add user message to state and display it
@@ -507,13 +515,6 @@ async def process_chat(user_input: str):
                     await st.session_state.mcp_client_stack.__aexit__(None, None, None)
                     st.session_state.mcp_client_stack = None
                     st.session_state.active_mcp_clients = []
-
-            # Create LLM Client
-            llm_client = create_llm_client(provider=provider, config=config)
-            if not llm_client:
-                raise ValueError(
-                    "LLM Client could not be created. Check configuration."
-                )
 
             # Create and manage MCP Clients using
             # an AsyncExitStack stored in session state
@@ -844,11 +845,13 @@ def display_chat_history():
 
 async def main():
     """Main application entry point."""
+    llm_client = create_llm_client(provider=st.session_state.llm_provider, config=st.session_state.chatbot_config)
+
     # Get MCP tools (cached) - Tool list displayed in sidebar
     mcp_tools = await get_mcp_tools()
 
     # Render sidebar - Allows config changes and clearing chat
-    render_sidebar(mcp_tools)
+    render_sidebar(mcp_tools, llm_client)
 
     # Display existing chat messages and their workflows from session state
     display_chat_history()
@@ -857,7 +860,7 @@ async def main():
     if prompt := st.chat_input(
         "Ask something... (e.g., 'What files are in the root directory?')"
     ):
-        await process_chat(prompt)
+        await process_chat(prompt, llm_client)
 
 
 if __name__ == "__main__":

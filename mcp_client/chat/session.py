@@ -20,14 +20,15 @@ SYSTEM_MESSAGE = (
     "{tools_description}\n\n"
     "Choose the appropriate tool based on the user's question. "
     "If no tool is needed, reply directly.\n\n"
-    "IMPORTANT: When you need to use a tool, you must respond with "
+    "IMPORTANT: When you need to use a tool or multiple tool, you must respond with "
+    "if you must execute tool to execute query, make sure to get relevant table tool first and get metadata"
     "the exact JSON object format below:\n"
-    "{{\n"
+    "[{{\n"
     '    "tool": "tool-name",\n'
     '    "arguments": {{\n'
     '        "argument-name": "value"\n'
     "    }}\n"
-    "}}\n\n"
+    "}}]\n\n"
     "After receiving tool responses:\n"
     "1. Transform the raw data into a natural, conversational response\n"
     "2. Keep responses concise but informative\n"
@@ -87,8 +88,6 @@ class ChatSession:
             clients: List of MCP clients
             llm_client: LLM client
         """
-        self.workflow_tracer = None
-        self.tool_client_map = {}
         self.clients: List[MCPClient] = clients
         self.llm_client: LLMClient = llm_client
         self.messages: List[Dict[str, str]] = []
@@ -113,6 +112,7 @@ class ChatSession:
                 return True
 
             # Initialize all MCP clients
+            self.tool_client_map = {}
             for client in self.clients:
                 try:
                     await client.initialize()
@@ -147,8 +147,7 @@ class ChatSession:
             await self.cleanup_clients()
             return False
 
-    @staticmethod
-    def _extract_tool_calls(llm_response: str) -> List[Dict[str, Any]]:
+    def _extract_tool_calls(self, llm_response: str) -> List[Dict[str, Any]]:
         """Extract tool call JSON objects from LLM response.
 
         Handles multiple cases:
@@ -165,6 +164,7 @@ class ChatSession:
         # Try to parse the entire response as JSON
         try:
             tool_call = json.loads(llm_response)
+            print(tool_call)
             if (
                 isinstance(tool_call, dict)
                 and "tool" in tool_call
@@ -255,8 +255,8 @@ class ChatSession:
 
         return tool_calls, True
 
-    @staticmethod
     def _format_tool_results(
+        self,
         tool_calls: List[ToolCall],
         for_display: bool = False,
         max_length: int = 200,
@@ -455,7 +455,7 @@ class ChatSession:
         if not self._is_initialized:
             success = await self.initialize()
             if not success:
-                yield "error", "Failed to initialize chat session"
+                yield ("error", "Failed to initialize chat session")
                 return
 
         # Initialize the workflow tracer
@@ -475,11 +475,11 @@ class ChatSession:
         )
 
         #### Get initial response stream ####
-        yield "status", "Thinking..."
+        yield ("status", "Thinking...")
         response_chunks = []
         for chunk in self.llm_client.get_stream_response(self.messages):
             response_chunks.append(chunk)
-            yield "response", chunk
+            yield ("response", chunk)
         #####################################
 
         llm_response = "".join(response_chunks)
@@ -525,8 +525,8 @@ class ChatSession:
                 arguments = tool_call_data["arguments"]
 
                 # Pass tool name and arguments to the UI
-                yield "tool_call", tool_name
-                yield "tool_arguments", json.dumps(arguments)
+                yield ("tool_call", tool_name)
+                yield ("tool_arguments", json.dumps(arguments))
 
                 # Record tool call request
                 self.workflow_tracer.add_event(
@@ -536,7 +536,7 @@ class ChatSession:
                 )
 
                 # Pass tool execution status to the UI
-                yield "tool_execution", f"Executing {tool_name}..."
+                yield ("tool_execution", f"Executing {tool_name}...")
 
                 # Record tool execution
                 self.workflow_tracer.add_event(
@@ -582,11 +582,11 @@ class ChatSession:
             )
 
             # Get next response stream
-            yield "status", "Processing results..."
+            yield ("status", "Processing results...")
             response_chunks = []
             for chunk in self.llm_client.get_stream_response(self.messages):
                 response_chunks.append(chunk)
-                yield "response", chunk
+                yield ("response", chunk)
 
             llm_response = "".join(response_chunks)
 

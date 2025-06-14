@@ -75,8 +75,7 @@ class WorkflowTracer:
         self.events.append(event)
         return event
 
-    @staticmethod
-    def _format_json_content(content: str, max_length: int = 70) -> str:
+    def _format_json_content(self, content: str, max_length: int = 70) -> str:
         """Format JSON content by compressing it into a single line.
 
         Args:
@@ -116,7 +115,7 @@ class WorkflowTracer:
             return "No workflow events recorded"
 
         # Color definitions
-        colors = {
+        COLORS = {
             WorkflowEventType.USER_QUERY: colorama.Fore.GREEN,
             WorkflowEventType.LLM_THINKING: colorama.Fore.BLUE,
             WorkflowEventType.LLM_RESPONSE: colorama.Fore.YELLOW,
@@ -127,7 +126,7 @@ class WorkflowTracer:
         }
 
         # Icons
-        icons = {
+        ICONS = {
             WorkflowEventType.USER_QUERY: "🔍",
             WorkflowEventType.LLM_THINKING: "💭",
             WorkflowEventType.LLM_RESPONSE: "🤖",
@@ -145,8 +144,8 @@ class WorkflowTracer:
         output.append(title)
 
         for i, event in enumerate(self.events):
-            color = colors.get(event.event_type, colorama.Fore.WHITE)
-            icon = icons.get(event.event_type, "•")
+            color = COLORS.get(event.event_type, colorama.Fore.WHITE)
+            icon = ICONS.get(event.event_type, "•")
 
             # Format message, handling JSON specially
             message = event.message

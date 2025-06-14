@@ -2,10 +2,9 @@ import os
 from typing import Optional
 
 import dotenv
-from dotenv import dotenv_values
 from openai import OpenAI
 
-
+from mcp_servers.utils.helpers import serialize_f32
 
 dotenv.load_dotenv()
 
@@ -13,17 +12,20 @@ dotenv.load_dotenv()
 class OpenAIClient:
     def __init__(
         self,
-        config
+        embedding_model_name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
     ):
-        self.embedding_model_name = config.llm_embedding_model_name,
-        self.model_name = config.llm_model_name,
+        self.embedding_model_name = embedding_model_name or os.getenv('LLM_EMBEDDING_MODEL_NAME')
+        self.model_name = model_name or os.getenv("LLM_MODEL_NAME")
         self.client = OpenAI(
-            api_key=config.llm_api_key,
-            base_url=config.llm_base_url,
+            api_key=api_key or os.getenv("LLM_API_KEY"),
+            base_url=base_url or os.getenv("LLM_BASE_URL"),
         )
 
     def get_response(self, messages: list[dict[str, str]]) -> str:
-        """Get a response from the Open AI LLM.
+        """Get a response from the LLM.
 
         Args:
             messages: A list of message dictionaries.
@@ -41,7 +43,7 @@ class OpenAIClient:
     def get_stream_response(
         self, messages: list[dict[str, str]]
     ):
-        """Get a streaming response from the Open AI LLM.
+        """Get a streaming response from the LLM.
 
         Args:
             messages: A list of message dictionaries.
@@ -61,19 +63,32 @@ class OpenAIClient:
             if content is not None:
                 yield content
 
-
-    def get_embedding_response(self, message: str) -> dict:
-        """Get an embedding response from the Open AI LLM.
+    def get_embedding_response(self, datas: list[str]) -> list:
+        """Get a response from the embedding LLM.
 
         Args:
-            message: A message dictionaries to embed with.
+            datas: list of sentence to embed.
 
         Returns:
-            The LLM's response as a dict json http response.
+            The LLM's embedding response as a list.
         """
         response = self.client.embeddings.create(
-            input=message,
             model=self.embedding_model_name,
+            input=datas,
             dimensions=1024
         )
-        return response.model_dump()
+        data = []
+        for record in response.data:
+            data.append((record.index, serialize_f32(record.embedding)))
+        return data
+
+
+
+if __name__ == "__main__":
+    client = OpenAIClient()
+    # Testing.
+    print(client.get_response([{"role": "user", "content": "你是谁？"}]))
+
+    # Testing stream response
+    for chunk in client.get_stream_response([{"role": "user", "content": "你是谁？"}]):
+        print(chunk, end="", flush=True)

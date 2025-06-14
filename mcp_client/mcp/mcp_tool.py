@@ -28,8 +28,8 @@ class MCPTool:
                 args_desc.append(arg_desc)
 
         return f"""
-            Tool: {self.name}
-            Description: {self.description}
-            Arguments:
-            {chr(10).join(args_desc)}
-        """
+Tool: {self.name}
+Description: {self.description}
+Arguments:
+{chr(10).join(args_desc)}
+"""
