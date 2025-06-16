@@ -1,16 +1,24 @@
 import asyncio
 import json
 import os
+import random
 import re
 import sys
 import traceback
+import uuid
 from contextlib import AsyncExitStack
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+import pandas as pd
 import streamlit as st
 
-from mcp_servers.utils.helpers import sync_metadata
+from client.client import MCPClient
+from client.mcp_tool import MCPTool
+from client.session import ChatSession
+from config.configuration import Configuration
+from helpers.generator import sync_metadata
+from utils.llm import create_llm_client
 
 if sys.platform == "win32":
     # The default event loop policy for Windows is SelectorEventLoop
@@ -23,10 +31,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
 
 # Assuming these imports exist and work correctly
-from mcp_client import Configuration, MCPClient  # noqa: E402
-from mcp_client.chat import ChatSession  # noqa: E402
-from mcp_client.llm import create_llm_client  # noqa: E402
-from mcp_client.mcp.mcp_tool import MCPTool  # noqa: E402
+
 
 # --- Streamlit Logo Configuration ---
 st.logo(
@@ -75,6 +80,7 @@ WORKFLOW_ICONS = {
     "TOOL_EXECUTION": "⚡️",
     "TOOL_RESULT": "📊",
     "FINAL_STATUS": "✅",
+    "DOWNLOAD": "📥",
     "ERROR": "❌",
 }
 
@@ -101,7 +107,7 @@ async def get_mcp_tools(force_refresh=False) -> Dict[str, List[MCPTool]]:
     tools_dict = {}
     config = st.session_state.chatbot_config
     server_config_path = os.path.join(
-        PROJECT_ROOT, "mcp_servers", "servers_config.json"
+        PROJECT_ROOT, "servers_config.json"
     )
     if not os.path.exists(server_config_path):
         st.sidebar.warning("MCP Server config file not found. No tools loaded.")
@@ -359,6 +365,7 @@ def render_workflow(steps: List[WorkflowStep], container=None):
                 j = i + 1
                 while j < len(steps):
                     next_step = steps[j]
+                    print(next_step.type)
                     # Associate based on sequence and type
                     if next_step.type == "TOOL_EXECUTION":
                         st.write(
@@ -372,7 +379,13 @@ def render_workflow(steps: List[WorkflowStep], container=None):
                         try:
                             # Success, tool execution completed.
                             details_dict = json.loads(details)
-                            st.json(details_dict)
+                            texts = re.findall(r"text='(.*?)'", details_dict.get('result'), re.DOTALL)
+                            parsed_dicts = [json.loads(text.encode('utf-8').decode('unicode_escape')) for text in
+                                            texts]
+                            st.json(parsed_dicts, expanded=False)
+                            if '_data_get' in tool_name:
+                                df = pd.DataFrame(parsed_dicts)
+                                st.table(df)
                         except json.JSONDecodeError:
                             # Error, tool execution failed.
                             result_str = str(details)
@@ -381,6 +394,25 @@ def render_workflow(steps: List[WorkflowStep], container=None):
                                 + ("..." if len(result_str) > 500 else "")
                                 or "_Empty result_"
                             )
+                        if '_data_get' in tool_name:
+                            st.write(f"**Download** {WORKFLOW_ICONS['DOWNLOAD']}: ")
+                            try:
+                                df = pd.DataFrame(parsed_dicts)
+                                csv = df.to_csv(index=False).encode('utf-8')
+                                st.download_button(
+                                    label="Download CSV",
+                                    data=csv,
+                                    file_name="data.csv",
+                                    mime="text/csv",
+                                    key=str(uuid.uuid4())
+                                )
+                            except ValueError:
+                                result_str = str(details)
+                                st.text(
+                                    result_str[:500]
+                                    + ("..." if len(result_str) > 500 else "")
+                                    or "_Empty result_"
+                                )
                         rendered_indices.add(j)
                         break  # Stop looking ahead once result is found for this tool
                     elif (
@@ -451,7 +483,7 @@ async def initialize_mcp_clients(
     """Initializes MCP Clients based on config."""
     clients = []
     server_config_path = os.path.join(
-        PROJECT_ROOT, "mcp_servers", "servers_config.json"
+        PROJECT_ROOT, "servers_config.json"
     )
     server_config = {}
     if os.path.exists(server_config_path):
@@ -531,7 +563,7 @@ async def process_chat(user_input: str, llm_client):
             st.session_state.chat_session = ChatSession(
                 st.session_state.active_mcp_clients, llm_client
             )
-            await st.session_state.chat_session.initialize()
+            await st.session_state.chat_session.initialize(provider=st.session_state.llm_provider)
             # Keep the history messages from the new chat session.
             if not st.session_state.history_messages:
                 # If the history messages are not set, we need to get the
@@ -578,7 +610,7 @@ async def process_chat(user_input: str, llm_client):
         # Process streaming response using the persistent chat_session
         print("Now chat session messages:", chat_session.messages)
         async for result in chat_session.send_message_stream(
-            user_input, show_workflow=True
+            user_input, provider=st.session_state.llm_provider, show_workflow=True
         ):
             new_step_added = False  # Reset for this iteration
             if isinstance(result, tuple):

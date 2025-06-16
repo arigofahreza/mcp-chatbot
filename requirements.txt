@@ -7,3 +7,4 @@ streamlit
 oracledb
 loguru
 sqlite-vec
+xlsxwriter

@@ -3,18 +3,17 @@ def generate_sqlite_table() -> str:
     CREATE TABLE IF NOT EXISTS metadatas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name VARCHAR(100) NOT NULL,
+        database_type VARCHAR(100) NOT NULL,
         description TEXT NOT NULL,
         metadata TEXT NOT NULL
     )
     """
 
-
 def generate_sqlite_insert() -> str:
     return """
-    INSERT INTO metadatas (table_name, description, metadata) 
-    VALUES (?, ?, ?)
+    INSERT INTO metadatas (table_name, database_type, description, metadata) 
+    VALUES (?, ?, ?, ?)
     """
-
 
 def generate_sqlite_select() -> str:
     return """
@@ -28,7 +27,7 @@ def generate_sqlite_select_by_id() -> str:
 
 def generate_sqlite_update() -> str:
     return """
-    UPDATE metadatas SET table_name = ?, description = ?, metadata = ? WHERE table_name = ?
+    UPDATE metadatas SET table_name = ?, database_type = ?, description = ?, metadata = ? WHERE table_name = ?
     """
 
 
@@ -37,9 +36,14 @@ def generate_sqlite_delete() -> str:
     DELETE FROM metadatas WHERE table_name = ?
     """
 
+def generate_sqlite_select_schema() -> str:
+    return """
+    SELECT table_name, database_type, description, metadata FROM metadatas
+    """
+
 def generate_sqlite_select_all() -> str:
     return """
-    SELECT table_name, description, metadata FROM metadatas
+    SELECT table_name, database_type FROM metadatas
     """
 
 def generate_sqlite_delete_vector() -> str:

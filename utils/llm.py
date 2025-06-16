@@ -1,11 +1,8 @@
 from typing import Literal
 
-from ..config.configuration import Configuration
-from .oai import OpenAIClient
-from .ollama import OllamaClient
-
-__all__ = ["OpenAIClient", "OllamaClient", "create_llm_client"]
-
+from config.configuration import Configuration
+from llm.oai import OpenAIClient
+from llm.ollama import OllamaClient
 
 LLMProvider = Literal["openai", "ollama"]
 

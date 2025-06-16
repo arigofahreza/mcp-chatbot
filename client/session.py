@@ -6,9 +6,11 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Union
 
 import colorama
 
-from ..llm.oai import OpenAIClient as LLMClient
-from ..mcp import MCPClient
-from ..utils import WorkflowEventType, WorkflowTracer
+import helpers
+from client.client import MCPClient
+from helpers.generator import all_used_table
+from llm.oai import OpenAIClient as LLMClient
+from utils.workflow import WorkflowTracer, WorkflowEventType
 
 # Configure logging
 logging.basicConfig(
@@ -16,14 +18,30 @@ logging.basicConfig(
 )
 
 SYSTEM_MESSAGE = (
-    "You are a helpful assistant with access to these tools:\n\n"
+    "You are a helpful {provider} assistant with access to these tools:\n\n"
     "{tools_description}\n\n"
     "Choose the appropriate tool based on the user's question. "
     "If no tool is needed, reply directly.\n\n"
-    "IMPORTANT: When you need to use a tool or multiple tool, you must respond with "
-    "if you must execute tool to execute query, make sure to get relevant table tool first and get metadata"
+    "Some of the table in this instance:\n"
+    "{all_used_table}\n\n"
+    "GUIDELINES:\n"
+    "1. By default, the user will usually ask about the data in their multiple database instance like postgre or oracle."
+    "2. Before executing *_get_data tool always use relevant_table tool to get schema and metadata"
+    "3. You can answer about other general knowledge topics if requested by the user.\n\n"
+    "EXAMPLE:\n"
+    "1. if the user ask about data, you will chain the relevant table tool and then execute get_data tool"
+    "so you will have multiple tools (relevant_table tool and get_data tool) to be used"
+    "2. if the user ask about metadata only or related table, you will use relevant table tool to get schema.\n\n"
+    "IMPORTANT: ALWAYS Use all the tool directly to execute no need to ask permission. "
+    "When you need to use a tool or multiple tool, you must respond with"
     "the exact JSON object format below:\n"
     "[{{\n"
+    '    "tool": "tool-name",\n'
+    '    "arguments": {{\n'
+    '        "argument-name": "value"\n'
+    "    }}\n"
+    "}},"
+    "{{\n"
     '    "tool": "tool-name",\n'
     '    "arguments": {{\n'
     '        "argument-name": "value"\n'
@@ -89,6 +107,7 @@ class ChatSession:
             llm_client: LLM client
         """
         self.clients: List[MCPClient] = clients
+        self.all_table = all_used_table()
         self.llm_client: LLMClient = llm_client
         self.messages: List[Dict[str, str]] = []
         self._is_initialized: bool = False
@@ -101,7 +120,7 @@ class ChatSession:
             except Exception as e:
                 logging.warning(f"Warning during cleanup of client {client.name}: {e}")
 
-    async def initialize(self) -> bool:
+    async def initialize(self, provider: str) -> bool:
         """Initialize MCP clients and prepare system message.
 
         Returns:
@@ -137,7 +156,9 @@ class ChatSession:
 
             # Format tool descriptions and create system message
             tools_description = "\n".join([tool.format_for_llm() for tool in all_tools])
-            system_message = SYSTEM_MESSAGE.format(tools_description=tools_description)
+            system_message = SYSTEM_MESSAGE.format(provider=provider,
+                                                   tools_description=tools_description,
+                                                   all_used_table=self.all_table)
 
             self.messages = [{"role": "system", "content": system_message}]
             self._is_initialized = True
@@ -164,7 +185,6 @@ class ChatSession:
         # Try to parse the entire response as JSON
         try:
             tool_call = json.loads(llm_response)
-            print(tool_call)
             if (
                 isinstance(tool_call, dict)
                 and "tool" in tool_call
@@ -242,6 +262,7 @@ class ChatSession:
             A list of ToolCall objects and a boolean indicating
                 if any tools were executed
         """
+        print("LLM_RESPONSE:", llm_response)
         if tool_call_data_list is None:
             tool_call_data_list = self._extract_tool_calls(llm_response)
 
@@ -282,6 +303,7 @@ class ChatSession:
     async def send_message(
         self,
         user_message: str,
+        provider: str,
         auto_process_tools: bool = True,
         show_workflow: bool = False,
         max_iterations: int = 10,
@@ -290,6 +312,7 @@ class ChatSession:
 
         Args:
             user_message: The user's message
+            provider: llm provider like "ollama" or "openai"
             auto_process_tools: Whether to auto-process tool calls
             show_workflow: Whether to show the workflow
             max_iterations: Maximum number of tool iterations (default: 10)
@@ -298,7 +321,7 @@ class ChatSession:
             The final response text
         """
         if not self._is_initialized:
-            success = await self.initialize()
+            success = await self.initialize(provider)
             if not success:
                 return "Failed to initialize chat session"
 
@@ -437,6 +460,7 @@ class ChatSession:
     async def send_message_stream(
         self,
         user_message: str,
+        provider: str,
         auto_process_tools: bool = True,
         show_workflow: bool = False,
         max_iterations: int = 10,
@@ -445,6 +469,7 @@ class ChatSession:
 
         Args:
             user_message: The user's message
+            provider: llm provider like "ollama" or "openai"
             auto_process_tools: Whether to auto-process tool calls
             show_workflow: Whether to show the workflow
             max_iterations: Maximum number of tool iterations (default: 10)
@@ -453,7 +478,7 @@ class ChatSession:
             Response text chunks or tuples of (status, text_chunk)
         """
         if not self._is_initialized:
-            success = await self.initialize()
+            success = await self.initialize(provider=provider)
             if not success:
                 yield ("error", "Failed to initialize chat session")
                 return
@@ -570,6 +595,8 @@ class ChatSession:
                         }
                     ),
                 )
+
+                # Pass generate csv
 
             # Format tool results and add to message history
             tool_results = self._format_tool_results(tool_calls)

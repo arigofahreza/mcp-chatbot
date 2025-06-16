@@ -4,7 +4,7 @@ from typing import Optional
 import dotenv
 from openai import OpenAI
 
-from mcp_servers.utils.helpers import serialize_f32
+from helpers.generator import serialize_f32
 
 dotenv.load_dotenv()
 
@@ -79,7 +79,7 @@ class OpenAIClient:
         )
         data = []
         for record in response.data:
-            data.append((record.index, serialize_f32(record.embedding)))
+            data.append((record.index+1, serialize_f32(record.embedding)))
         return data
 
 

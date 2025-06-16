@@ -2,10 +2,12 @@ import json
 from typing import List, Optional
 from mcp.server.fastmcp import FastMCP
 
-from connection.database import get_sqlite_client, get_oracle_client, get_postgres_client
+from config.configuration import Configuration
+from config.database import get_sqlite_client, get_oracle_client, get_postgres_client
 from models.base_model import Metadata
+from utils.llm import create_llm_client
 from utils.query import generate_sqlite_table, generate_sqlite_insert, generate_sqlite_select, generate_sqlite_update, \
-    generate_sqlite_delete, generate_sqlite_vector
+    generate_sqlite_delete, generate_sqlite_vector, generate_sqlite_select_vector, generate_sqlite_select_by_id
 
 mcp = FastMCP('unified')
 
@@ -16,7 +18,6 @@ _oracle_client = None
 _oracle_cursor = None
 _postgres_client = None
 _postgres_cursor = None
-
 
 def sqlite_client():
     """Get or create the global Sqlite3 client instance"""
@@ -68,6 +69,7 @@ def create_vector_table():
 @mcp.tool()
 async def metadata_create(
         table_name: str,
+        database_type: str,
         description: str,
         metadatas: List[Metadata]
 ) -> str:
@@ -75,6 +77,7 @@ async def metadata_create(
 
         Args:
             table_name: Name of the table to create
+            database_type: Type of database ("postgresql", "oracledb")
             description: A description of the table that provides an overview of the table itself.
             metadatas: List metadata which describes the schema and metadata of the table, including column names, data types, and descriptions of each column.
 
@@ -83,14 +86,13 @@ async def metadata_create(
     try:
         query = generate_sqlite_insert()
         json_metadata = json.dumps([metadata.model_dump_json() for metadata in metadatas])
-        cur.execute(query, (table_name, description, json_metadata))
+        cur.execute(query, (table_name, database_type, description, json_metadata))
         conn.commit()
         return f"Successfully insert data with name {table_name}"
     except Exception as e:
         raise Exception(f"Failed to insert metadata: {str(e)}") from e
 
 
-@mcp.tool()
 async def metadata_get(
         limit: Optional[int] = 10,
         offset: Optional[int] = 0
@@ -119,6 +121,7 @@ async def metadata_get(
 @mcp.tool()
 async def metadata_update(
         table_name: str,
+        database_type: str,
         description: str,
         metadata: Metadata
 ) -> str:
@@ -126,6 +129,7 @@ async def metadata_update(
 
         Args:
             table_name: Name of the table to update in
+            database_type: Type of database ("postgresql", "oracledb")
             description: A new description of the table that provides an overview of the table itself. Provide previous value if no update
             metadata: A new metadata which describes the schema and metadata of the table, including column names, data types, and descriptions of each column. Provide previous value if no update
 
@@ -134,7 +138,7 @@ async def metadata_update(
     try:
         query = generate_sqlite_update()
         json_metadata = metadata.model_dump_json()
-        cur.execute(query, (table_name, description, json_metadata, table_name))
+        cur.execute(query, (table_name, database_type, description, json_metadata, table_name))
         conn.commit()
         return f"Successfully update data with name {table_name} | description {description} | metadata {json_metadata}"
     except Exception as e:
@@ -160,8 +164,40 @@ async def metadata_delete(
         raise Exception(f"Failed to delete metadata: {str(e)}") from e
 
 @mcp.tool()
+async def relevant_table(prompt: str, provider: str) -> dict:
+    """This tool is mandatory before executing *_data_get tool.
+       Fetch the relevant table base on natural language query from user using vector
+
+        Args:
+            prompt: user input prompt as is, as a string
+            provider: LLM provider type ("openai" or "ollama") auto generated from LLM
+
+        Returns:
+            a result metadata
+    """
+    client = create_llm_client(provider, Configuration())
+    conn, cur = get_sqlite_client()
+    try:
+        query = generate_sqlite_select_vector()
+        embedding_results = client.get_embedding_response([prompt])
+        datas = embedding_results[0]
+        rows = cur.execute(query, (datas[1],) ).fetchall()
+        results = [dict(row) for row in rows]
+        result = results[0]
+        rowid = result.get('rowid')
+        select_query = generate_sqlite_select_by_id()
+        cur.execute(select_query, (rowid,))
+        rows = cur.fetchall()
+        metadata_results = [dict(row) for row in rows]
+        return metadata_results[0]
+    except Exception as e:
+        raise Exception(f"Failed to get relevant table: {str(e)}") from e
+
+
+@mcp.tool()
 async def oracle_data_get(query: str) -> List[dict]:
-    """Fetch all the result from oracle database with provided query
+    """Before executing this tool, need to execute relevant table tool.
+       Fetch all the result from oracle database with provided query
 
         Args:
             query: SQL query that LLM generated from user input prompt
@@ -180,7 +216,8 @@ async def oracle_data_get(query: str) -> List[dict]:
 
 @mcp.tool()
 async def postgres_data_get(query: str) -> List[dict]:
-    """Fetch all the result from postgres database with provided query
+    """Before executing this tool, need to execute relevant table tool.
+       Fetch all the result from postgres database with provided query
 
         Args:
             query: SQL query that LLM generated from user input prompt

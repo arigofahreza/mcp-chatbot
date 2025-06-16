@@ -4,7 +4,7 @@ from typing import Optional
 import dotenv
 import requests
 
-from mcp_servers.utils.helpers import serialize_f32
+from helpers.generator import serialize_f32
 
 dotenv.load_dotenv()
 
@@ -103,7 +103,7 @@ class OllamaClient:
         response.raise_for_status()
         data = []
         for index, record in enumerate(response.json().get('embeddings')):
-            data.append((index, serialize_f32(record)))
+            data.append((index+1, serialize_f32(record)))
         return data
 
 
