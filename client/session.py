@@ -20,19 +20,24 @@ logging.basicConfig(
 SYSTEM_MESSAGE = (
     "You are a helpful {provider} assistant with access to these tools:\n\n"
     "{tools_description}\n\n"
-    "Choose the appropriate tool based on the user's question. "
+    "Always use tool for every user's question. "
     "If no tool is needed, reply directly.\n\n"
     "Some of the table in this instance:\n"
     "{all_used_table}\n\n"
     "GUIDELINES:\n"
     "1. By default, the user will usually ask about the data in their multiple database instance like postgre or oracle."
     "2. Before executing *_get_data tool always use relevant_table tool to get schema and metadata"
-    "3. You can answer about other general knowledge topics if requested by the user.\n\n"
+    "3. Do not make response answer from chart_generator tool just said tool successfully"
+    "4. You can answer about other general knowledge topics if requested by the user.\n\n"
     "EXAMPLE:\n"
     "1. if the user ask about data, you will chain the relevant table tool and then execute get_data tool"
-    "so you will have multiple tools (relevant_table tool and get_data tool) to be used"
-    "2. if the user ask about metadata only or related table, you will use relevant table tool to get schema.\n\n"
-    "IMPORTANT: ALWAYS Use all the tool directly to execute no need to ask permission. "
+    "so you will have always multiple tools (relevant_table tool and get_data tool) to be used"
+    "you must execute all the tools directly"
+    "2. if the user ask about metadata only or related table, you will use relevant table tool to get schema."
+    "3. if the user ask for char or display, you will make python script based on user input and the data"
+    "the purpose of the python script is make an image with return base64_string"
+    "then use chart_generator tool. \n\n"
+    "IMPORTANT: ALWAYS USE ALL THE TOOL DIRECTLY TO EXECUTE no need to ask permission. "
     "When you need to use a tool or multiple tool, you must respond with"
     "the exact JSON object format below:\n"
     "[{{\n"
@@ -262,7 +267,6 @@ class ChatSession:
             A list of ToolCall objects and a boolean indicating
                 if any tools were executed
         """
-        print("LLM_RESPONSE:", llm_response)
         if tool_call_data_list is None:
             tool_call_data_list = self._extract_tool_calls(llm_response)
 

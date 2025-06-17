@@ -1,5 +1,9 @@
+import asyncio
 import json
+import re
 from typing import List, Optional
+
+from langchain_experimental.utilities import PythonREPL
 from mcp.server.fastmcp import FastMCP
 
 from config.configuration import Configuration
@@ -233,6 +237,27 @@ async def postgres_data_get(query: str) -> List[dict]:
     except Exception as e:
         raise Exception(f"Failed to get data from postgres: {str(e)}") from e
 
+@mcp.tool()
+async def chart_generator(python_code: str) -> str:
+    """Creating chart based on python code and run into PythonREPL() function
+
+        Args:
+            python_code: Python code that contain matplotlib code generator and print(base64_string)
+
+        Returns:
+            base64_string of the image
+    """
+    try:
+        python_repl = PythonREPL()
+        cleaned_code = python_code.strip().replace('\\n', '\n')
+        cleaned_code = re.sub(r'\\([\'"])', r'\1', cleaned_code)
+        print(cleaned_code)
+        output = await asyncio.to_thread(python_repl.run, cleaned_code)
+        if output.endswith("\n"):
+            output = output[:-1]
+        return output
+    except Exception as e:
+        raise Exception(f"Failed to generate chart from code: {str(e)}") from e
 
 def main():
     """Entry point for the Unified MCP server."""

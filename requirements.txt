@@ -8,3 +8,6 @@ oracledb
 loguru
 sqlite-vec
 xlsxwriter
+langchain
+langchain_experimental
+matplotlib

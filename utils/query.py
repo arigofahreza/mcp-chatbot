@@ -43,7 +43,7 @@ def generate_sqlite_select_schema() -> str:
 
 def generate_sqlite_select_all() -> str:
     return """
-    SELECT table_name, database_type FROM metadatas
+    SELECT * FROM metadatas
     """
 
 def generate_sqlite_delete_vector() -> str:

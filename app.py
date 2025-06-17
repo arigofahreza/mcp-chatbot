@@ -8,6 +8,7 @@ import traceback
 import uuid
 from contextlib import AsyncExitStack
 from dataclasses import asdict, dataclass, field
+from json import JSONDecodeError
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -81,6 +82,7 @@ WORKFLOW_ICONS = {
     "TOOL_RESULT": "📊",
     "FINAL_STATUS": "✅",
     "DOWNLOAD": "📥",
+    "CHART": "📈",
     "ERROR": "❌",
 }
 
@@ -248,7 +250,6 @@ def extract_json_tool_calls(text: str) -> Tuple[List[Dict[str, Any]], str]:
     tool_calls = []
     cleaned_text = text
     json_parsed = False
-
     # Try to parse the entire text as a single JSON array of
     # tool calls or a single tool call object
     try:
@@ -365,7 +366,6 @@ def render_workflow(steps: List[WorkflowStep], container=None):
                 j = i + 1
                 while j < len(steps):
                     next_step = steps[j]
-                    print(next_step.type)
                     # Associate based on sequence and type
                     if next_step.type == "TOOL_EXECUTION":
                         st.write(
@@ -374,38 +374,22 @@ def render_workflow(steps: List[WorkflowStep], container=None):
                         )
                         rendered_indices.add(j)
                     elif next_step.type == "TOOL_RESULT":
-                        st.write(f"**Result** {WORKFLOW_ICONS['TOOL_RESULT']}:")
                         details = next_step.details
-                        try:
-                            # Success, tool execution completed.
+                        if 'chart' in tool_name:
+                            st.write(f"**Chart** {WORKFLOW_ICONS['CHART']}")
                             details_dict = json.loads(details)
-                            texts = re.findall(r"text='(.*?)'", details_dict.get('result'), re.DOTALL)
-                            parsed_dicts = [json.loads(text.encode('utf-8').decode('unicode_escape')) for text in
-                                            texts]
-                            st.json(parsed_dicts, expanded=False)
-                            if '_data_get' in tool_name:
-                                df = pd.DataFrame(parsed_dicts)
-                                st.table(df)
-                        except json.JSONDecodeError:
-                            # Error, tool execution failed.
-                            result_str = str(details)
-                            st.text(
-                                result_str[:500]
-                                + ("..." if len(result_str) > 500 else "")
-                                or "_Empty result_"
-                            )
-                        if '_data_get' in tool_name:
-                            st.write(f"**Download** {WORKFLOW_ICONS['DOWNLOAD']}: ")
+
+                            # Get the result field
+                            result = details_dict.get("result", "")
+
+                            # Extract the base64 from the TextContent part using regex
+                            match = re.search(r"text='(.+?)'", result)
+                            if not match:
+                                raise ValueError("Base64 string not found in 'result'")
+
+                            result = match.group(1)
                             try:
-                                df = pd.DataFrame(parsed_dicts)
-                                csv = df.to_csv(index=False).encode('utf-8')
-                                st.download_button(
-                                    label="Download CSV",
-                                    data=csv,
-                                    file_name="data.csv",
-                                    mime="text/csv",
-                                    key=str(uuid.uuid4())
-                                )
+                                st.image("data:image/png;base64," + result)
                             except ValueError:
                                 result_str = str(details)
                                 st.text(
@@ -413,6 +397,46 @@ def render_workflow(steps: List[WorkflowStep], container=None):
                                     + ("..." if len(result_str) > 500 else "")
                                     or "_Empty result_"
                                 )
+                        else:
+                            st.write(f"**Result** {WORKFLOW_ICONS['TOOL_RESULT']}:")
+                            try:
+                                # Success, tool execution completed.
+                                details_dict = json.loads(details)
+                                texts = re.findall(r"text='(.*?)'", details_dict.get('result'), re.DOTALL)
+                                parsed_dicts = [json.loads(text.encode('utf-8').decode('unicode_escape')) for text in
+                                                texts]
+                                st.json(parsed_dicts, expanded=False)
+                                if '_data_get' in tool_name:
+                                    df = pd.DataFrame(parsed_dicts)
+                                    st.table(df)
+                            except json.JSONDecodeError:
+                                # Error, tool execution failed.
+                                result_str = str(details)
+                                st.text(
+                                    result_str[:500]
+                                    + ("..." if len(result_str) > 500 else "")
+                                    or "_Empty result_"
+                                )
+                            if '_data_get' in tool_name:
+                                st.write(f"**Download** {WORKFLOW_ICONS['DOWNLOAD']}: ")
+                                try:
+                                    df = pd.DataFrame(parsed_dicts)
+                                    csv = df.to_csv(index=False).encode('utf-8')
+                                    st.download_button(
+                                        label="Download CSV",
+                                        data=csv,
+                                        file_name="data.csv",
+                                        mime="text/csv",
+                                        key=str(uuid.uuid4())
+                                    )
+                                except ValueError:
+                                    result_str = str(details)
+                                    st.text(
+                                        result_str[:500]
+                                        + ("..." if len(result_str) > 500 else "")
+                                        or "_Empty result_"
+                                    )
+
                         rendered_indices.add(j)
                         break  # Stop looking ahead once result is found for this tool
                     elif (
@@ -585,7 +609,7 @@ async def process_chat(user_input: str, llm_client):
 
         chat_session = st.session_state.chat_session
         chat_session.messages = st.session_state.history_messages
-        print("Chat session messages:", chat_session.messages)
+        # print("Chat session messages:", chat_session.messages)
 
         # Add user query to workflow steps
         current_workflow_steps.append(
@@ -608,7 +632,7 @@ async def process_chat(user_input: str, llm_client):
         new_step_added = False  # Track if workflow needs rerender
 
         # Process streaming response using the persistent chat_session
-        print("Now chat session messages:", chat_session.messages)
+        # print("Now chat session messages:", chat_session.messages)
         async for result in chat_session.send_message_stream(
             user_input, provider=st.session_state.llm_provider, show_workflow=True
         ):
@@ -673,6 +697,12 @@ async def process_chat(user_input: str, llm_client):
                 elif status == "response":
                     if isinstance(content, str):
                         accumulated_response_content += content
+                        # if 'chart_generator' in accumulated_response_content:
+                        #     try:
+                        #         _ = json.loads(accumulated_response_content)
+                        #         break
+                        #     except JSONDecodeError:
+                        #         pass
                         potential_json_tools, clean_response_so_far = (
                             extract_json_tool_calls(accumulated_response_content)
                         )
