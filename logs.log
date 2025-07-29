@@ -1,0 +1,19 @@
+2025-07-29 16:08:19,177:WARNING:C:\Users\argfh\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\scipy\__init__.py:145: UserWarning: A NumPy version >=1.21.6 and <1.28.0 is required for this version of SciPy (detected version 2.2.6)
+  warnings.warn(f"A NumPy version >={np_minversion} and <{np_maxversion}"
+
+2025-07-29 16:28:43,356:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:28:43,356:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:28:43,356:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:28:43,356:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:31:38,446:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:31:38,446:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:31:38,446:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-29 16:31:38,446:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.

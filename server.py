@@ -3,11 +3,14 @@ import json
 import re
 from typing import List, Optional
 
+import pandas as pd
 from langchain_experimental.utilities import PythonREPL
 from mcp.server.fastmcp import FastMCP
+from pycaret.regression import load_model, predict_model
 
 from config.configuration import Configuration
 from config.database import get_sqlite_client, get_oracle_client, get_postgres_client
+from helpers.generator import klasifikasi_odometer
 from models.base_model import Metadata
 from utils.llm import create_llm_client
 from utils.query import generate_sqlite_table, generate_sqlite_insert, generate_sqlite_select, generate_sqlite_update, \
@@ -258,6 +261,86 @@ async def chart_generator(python_code: str) -> str:
         return output
     except Exception as e:
         raise Exception(f"Failed to generate chart from code: {str(e)}") from e
+
+@mcp.tool()
+async def sparepart_forecast(
+        historical_data: List[dict],
+        input_date: str,
+        model: str,
+        kode_cabang: str,
+        odometer: str,
+        tipe_kendaraan: str,
+        total_diskon: str
+) -> str|dict:
+    if not historical_data:
+        return 'Do not have historical data, cannot forecast data'
+    kategori_odometer = klasifikasi_odometer(odometer)
+    current_data = {
+        'YearMonth': input_date,
+        'Model': model,
+        'Kode Cabang': kode_cabang,
+        'Tipe Kendaraan': tipe_kendaraan,
+        'Kategori Odometer': kategori_odometer,
+        'Jumlah_Service': 1,
+        'Total_Diskon': total_diskon
+    }
+    historical_data.append(current_data)
+    df = pd.DataFrame(historical_data)
+    df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
+    df['Bulan'] = df['YearMonth'].dt.month
+    df['Tahun'] = df['YearMonth'].dt.year
+    services_stats = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan', 'Kategori Odometer', 'Bulan', 'Tahun']).agg(
+        qty_sum=('Total_Biaya', 'sum')
+    ).reset_index()
+    df = df.merge(services_stats, on=['Model', 'Kode Cabang', 'Tipe Kendaraan', 'Kategori Odometer', 'Bulan', 'Tahun'],
+                  how='left')
+
+    df['diskon_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Diskon'].shift(1).fillna(0)
+    df['biaya_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Biaya'].shift(1).fillna(0)
+    pipeline = load_model('./ml_model/suzuki_sales_month_v1')
+    holdout_test = predict_model(pipeline, data=df)
+    last_row = holdout_test.iloc[-1]
+    return last_row.to_dict()
+
+@mcp.tool()
+async def sales_forecast(
+        historical_data: List[dict],
+        input_date: str,
+        customer: str,
+        discount: str,
+        gross: str,
+        tipe_part: str
+) -> str|dict:
+    if not historical_data:
+        return 'Do not have historical data, cannot forecast data'
+    current_data = {
+        'YearMonth': input_date,
+        'Nama Customer': customer,
+        'Discount': discount,
+        'Gross': gross,
+        'Tipe Part': tipe_part,
+        'Transaction Count': 1,
+        'beli': 1,
+    }
+    historical_data.append(current_data)
+    df = pd.DataFrame(historical_data)
+    df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
+    df['Bulan'] = df['YearMonth'].dt.month
+    df['Tahun'] = df['YearMonth'].dt.year
+    sparepart_stats = df.groupby(['Nama Customer', 'Bulan', 'Tahun']).agg(
+        avg_discount=('Discount', 'mean')
+    ).reset_index()
+    df = df.merge(sparepart_stats, on=['Nama Customer', 'Bulan', 'Tahun'], how='left')
+
+    # Tambahkan fitur histori (qty dan diskon sebelumnya)
+    df['diskon_lalu'] = df.groupby('Nama Customer')['Discount'].shift(1).fillna(0)
+    df['qty_lalu'] = df.groupby('Nama Customer')['Total Qty'].shift(1).fillna(0)
+
+    pipeline = load_model('./ml_model/suzuki_sparepart_month_v1')
+    holdout_test = predict_model(pipeline, data=df)
+    last_row = holdout_test.iloc[-1]
+    return last_row.to_dict()
+
 
 def main():
     """Entry point for the Unified MCP server."""

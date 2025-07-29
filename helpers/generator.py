@@ -48,4 +48,15 @@ def all_used_table():
         cur.close()
         conn.close()
 
-
+def klasifikasi_odometer(km):
+    km = int(km)
+    if km <= 10000:
+        return 'Sangat Rendah'
+    elif km <= 30000:
+        return 'Rendah'
+    elif km <= 60000:
+        return 'Sedang'
+    elif km <= 100000:
+        return 'Tinggi'
+    else:
+        return 'Sangat Tinggi'

@@ -11,3 +11,5 @@ xlsxwriter
 langchain
 langchain_experimental
 matplotlib
+pandas
+pycaret==3.3.2
