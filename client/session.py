@@ -26,15 +26,27 @@ SYSTEM_MESSAGE = (
     "{all_used_table}\n\n"
     "GUIDELINES:\n"
     "1. By default, the user will usually ask about the data in their multiple database instance like postgre or oracle."
-    "2. Before executing *_get_data tool always use relevant_table tool to get schema and metadata"
-    "3. Do not make response answer from chart_generator tool just said tool successfully"
-    "4. You can answer about other general knowledge topics if requested by the user.\n\n"
+    "2. Understand every question or command from the user, after that you MUST define tool for solving the problem"
+    "3. If you need additional information on the other table, chain to get multiple relevant table tool and create query based on that multiple table description"
+    "4. Before executing *_get_data tool always use relevant_table tool to get schema and metadata"
+    "5. if you decide want to use multiple tools, execute it sequentially without ask permission"
+    "6. if you decide to get multiple table, execute it sequentially and directly"
+    "7. User can make predictive analytics with tools, use tool for related table and metadata"
+    "8. predictive tools must provide argument for generating dataset, if not provided ask the user to fill it in"
+    "9. After user provide argument, parse into json and use this as an input for calling tool"
+    "10. If you need to generate query make sure to use double quote on every column and do not use backslash"
+    "11. You can answer about other general knowledge topics if requested by the user."
+    "12. Make sure you ACTUALLY make the tool call, instead of ending your turn\n\n"
     "EXAMPLE:\n"
     "1. if the user ask about data, you will chain the relevant table tool and then execute get_data tool"
     "so you will have always multiple tools (relevant_table tool and get_data tool) to be used"
     "you must execute all the tools directly"
     "2. if the user ask about metadata only or related table, you will use relevant table tool to get schema."
-    "3. if the user ask for char or display, you will make python script based on user input and the data"
+    "3. if the user ask about predictive analytic, you will chain multiple tools start from (relevant table tool -> get_data tool -> *_forecast tools)"
+    "before executing *_forecast tools, you will execute get_data tool to get only last 1 historical data and after that execute *_forecast tools with that data for argument"
+    "for service forecast you will predict for Total Biaya with same Model, Kode Cabang, Tipe Kendaraan"
+    "for sparepart forecast you will predict for Total Qty with same Nama Customer, Tipe Part"
+    "4. if the user ask for char or display, you will make python script based on user input and the data"
     "the purpose of the python script is make an image with return base64_string"
     "then use chart_generator tool. \n\n"
     "IMPORTANT: ALWAYS USE ALL THE TOOL DIRECTLY TO EXECUTE no need to ask permission. "
@@ -57,7 +69,8 @@ SYSTEM_MESSAGE = (
     "2. Keep responses concise but informative\n"
     "3. Focus on the most relevant information\n"
     "4. Use appropriate context from the user's question\n"
-    "5. Avoid simply repeating the raw data\n\n"
+    "5. Avoid simply repeating the raw data\n"
+    "6. Answer only in Bahasa Indonesia.\n\n"
     "Please use only the tools that are explicitly defined above."
 )
 
@@ -516,7 +529,8 @@ class ChatSession:
         # Record LLM response
         self.workflow_tracer.add_event(
             WorkflowEventType.LLM_RESPONSE,
-            llm_response[:50] if len(llm_response) > 50 else llm_response,
+            # llm_response[:50] if len(llm_response) > 50 else llm_response,
+            llm_response
         )
 
         self.messages.append({"role": "assistant", "content": llm_response})
@@ -550,6 +564,7 @@ class ChatSession:
             # Process each tool call separately, and pass detailed information to the UI
             tool_calls = []
             for idx, tool_call_data in enumerate(tool_call_data_list):
+                # print(tool_call_data)
                 tool_name = tool_call_data["tool"]
                 arguments = tool_call_data["arguments"]
 
@@ -574,6 +589,7 @@ class ChatSession:
 
                 # Execute tool call
                 tool_call = await self._execute_tool_call(tool_call_data)
+                print(tool_call)
                 tool_calls.append(tool_call)
 
                 # Record tool result
@@ -583,7 +599,7 @@ class ChatSession:
                     "Success" if success else f"Error: {tool_call.error}",
                     {
                         "success": success,
-                        "result": str(tool_call.result)[:100] if success else None,
+                        "result": str(tool_call.result) if success else None, ##edit
                     },
                 )
 
@@ -624,7 +640,8 @@ class ChatSession:
             # Record LLM response
             self.workflow_tracer.add_event(
                 WorkflowEventType.LLM_RESPONSE,
-                llm_response[:50] if len(llm_response) > 50 else llm_response,
+                # llm_response[:50] if len(llm_response) > 50 else llm_response,
+                llm_response
             )
 
             self.messages.append({"role": "assistant", "content": llm_response})
