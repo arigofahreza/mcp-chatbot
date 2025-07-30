@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 from typing import List, Optional
 import pandas as pd
@@ -340,7 +341,8 @@ async def services_forecast(
     df['biaya_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Biaya'].shift(1).fillna(0)
     last_row_df = df.tail(1).reset_index(drop=True)
     last_row_df = last_row_df.drop(columns=['Total_Biaya'])
-    pipeline = load_model('./ml_model/suzuki_sales_month_v1')
+    model_path = os.path.join('ml_model', 'suzuki_sales_month_v1')
+    pipeline = load_model(model_path)
     holdout_test = predict_model(pipeline, data=last_row_df)
     return holdout_test.to_dict(orient='records')
 
@@ -400,8 +402,8 @@ async def spareparts_forecast(
 
     last_row_df = df.tail(1).reset_index(drop=True)
     last_row_df = last_row_df.drop(columns=['Total Qty'])
-
-    pipeline = load_model('./ml_model/suzuki_sparepart_month_v1')
+    model_path = os.path.join('ml_model', 'suzuki_sparepart_month_v1')
+    pipeline = load_model(model_path)
     holdout_test = predict_model(pipeline, data=last_row_df)
     return holdout_test.to_dict(orient='records')
 

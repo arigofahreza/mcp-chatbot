@@ -974,3 +974,57 @@
 2025-07-31 01:17:54,879:INFO:Preloading libraries
 2025-07-31 01:17:54,879:INFO:Set up data.
 2025-07-31 01:17:54,884:INFO:Set up index.
+2025-07-31 01:33:26,492:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:26,492:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:26,492:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:26,492:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:36,643:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:36,643:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:36,643:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:36,643:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:42,550:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:42,550:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:42,550:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:42,550:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:33:50,223:INFO:Initializing load_model()
+2025-07-31 01:33:50,223:INFO:load_model(model_name=ml_model\suzuki_sales_month_v1, platform=None, authentication=None, verbose=True)
+2025-07-31 01:33:51,073:INFO:Initializing predict_model()
+2025-07-31 01:33:51,073:INFO:predict_model(self=<pycaret.regression.oop.RegressionExperiment object at 0x00000245D0C92230>, estimator=Pipeline(memory=Memory(location=None),
+         steps=[('date_feature_extractor',
+                 TransformerWrapper(include=['YearMonth'],
+                                    transformer=ExtractDateTimeFeatures())),
+                ('numerical_imputer',
+                 TransformerWrapper(include=['Kode Cabang', 'Jumlah_Service',
+                                             'Total_Diskon', 'Persen_Diskon',
+                                             'Bulan', 'Tahun', 'avg_discount',
+                                             'diskon_lalu', 'biaya_lalu'],
+                                    transformer=SimpleImputer()))...
+                 TransformerWrapper(include=['Model', 'Tipe Kendaraan',
+                                             'Kategori Odometer'],
+                                    transformer=OneHotEncoder(cols=['Model',
+                                                                    'Tipe '
+                                                                    'Kendaraan',
+                                                                    'Kategori '
+                                                                    'Odometer'],
+                                                              handle_missing='return_nan',
+                                                              use_cat_names=True))),
+                ('clean_column_names',
+                 TransformerWrapper(transformer=CleanColumnNames())),
+                ('trained_model',
+                 <catboost.core.CatBoostRegressor object at 0x00000245D0D69CC0>)]), probability_threshold=None, encoded_labels=False, raw_score=False, round=4, verbose=True, ml_usecase=None, preprocess=True, encode_labels=<function _SupervisedExperiment.predict_model.<locals>.encode_labels at 0x00000245D0C66D40>)
+2025-07-31 01:33:51,073:INFO:Checking exceptions
+2025-07-31 01:33:51,073:INFO:Preloading libraries
+2025-07-31 01:33:51,073:INFO:Set up data.
+2025-07-31 01:33:51,078:INFO:Set up index.
