@@ -873,3 +873,104 @@
 2025-07-31 00:52:10,479:INFO:Preloading libraries
 2025-07-31 00:52:10,480:INFO:Set up data.
 2025-07-31 00:52:10,486:INFO:Set up index.
+2025-07-31 01:16:39,339:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:39,339:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:39,339:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:39,339:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:50,731:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:50,731:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:50,731:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:50,731:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:56,487:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:56,488:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:56,488:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:16:56,488:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:04,084:INFO:Initializing load_model()
+2025-07-31 01:17:04,084:INFO:load_model(model_name=./ml_model/suzuki_sparepart_month_v1, platform=None, authentication=None, verbose=True)
+2025-07-31 01:17:04,947:INFO:Initializing predict_model()
+2025-07-31 01:17:04,948:INFO:predict_model(self=<pycaret.regression.oop.RegressionExperiment object at 0x00000160E1687CD0>, estimator=Pipeline(memory=Memory(location=None),
+         steps=[('date_feature_extractor',
+                 TransformerWrapper(include=['YearMonth'],
+                                    transformer=ExtractDateTimeFeatures())),
+                ('numerical_imputer',
+                 TransformerWrapper(include=['Discount', 'Gross',
+                                             'Persen_Diskon',
+                                             'Transaction Count', 'beli',
+                                             'Bulan', 'Tahun', 'avg_discount',
+                                             'diskon_lalu', 'qty_lalu'],
+                                    transformer=SimpleImputer())),
+                (...
+                                    transformer=OneHotEncoder(cols=['Tipe '
+                                                                    'Part'],
+                                                              handle_missing='return_nan',
+                                                              use_cat_names=True))),
+                ('rest_encoding',
+                 TransformerWrapper(include=['Nama Customer'],
+                                    transformer=TargetEncoder(cols=['Nama '
+                                                                    'Customer'],
+                                                              handle_missing='return_nan'))),
+                ('clean_column_names',
+                 TransformerWrapper(transformer=CleanColumnNames())),
+                ('trained_model', AdaBoostRegressor(random_state=123))]), probability_threshold=None, encoded_labels=False, raw_score=False, round=4, verbose=True, ml_usecase=None, preprocess=True, encode_labels=<function _SupervisedExperiment.predict_model.<locals>.encode_labels at 0x00000160E1656D40>)
+2025-07-31 01:17:04,948:INFO:Checking exceptions
+2025-07-31 01:17:04,948:INFO:Preloading libraries
+2025-07-31 01:17:04,948:INFO:Set up data.
+2025-07-31 01:17:04,952:INFO:Set up index.
+2025-07-31 01:17:36,440:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:36,440:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:36,440:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:36,440:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:42,370:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:42,370:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:42,370:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:42,370:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-07-31 01:17:53,984:INFO:Initializing load_model()
+2025-07-31 01:17:53,984:INFO:load_model(model_name=./ml_model/suzuki_sales_month_v1, platform=None, authentication=None, verbose=True)
+2025-07-31 01:17:54,879:INFO:Initializing predict_model()
+2025-07-31 01:17:54,879:INFO:predict_model(self=<pycaret.regression.oop.RegressionExperiment object at 0x000001F9A6617820>, estimator=Pipeline(memory=Memory(location=None),
+         steps=[('date_feature_extractor',
+                 TransformerWrapper(include=['YearMonth'],
+                                    transformer=ExtractDateTimeFeatures())),
+                ('numerical_imputer',
+                 TransformerWrapper(include=['Kode Cabang', 'Jumlah_Service',
+                                             'Total_Diskon', 'Persen_Diskon',
+                                             'Bulan', 'Tahun', 'avg_discount',
+                                             'diskon_lalu', 'biaya_lalu'],
+                                    transformer=SimpleImputer()))...
+                 TransformerWrapper(include=['Model', 'Tipe Kendaraan',
+                                             'Kategori Odometer'],
+                                    transformer=OneHotEncoder(cols=['Model',
+                                                                    'Tipe '
+                                                                    'Kendaraan',
+                                                                    'Kategori '
+                                                                    'Odometer'],
+                                                              handle_missing='return_nan',
+                                                              use_cat_names=True))),
+                ('clean_column_names',
+                 TransformerWrapper(transformer=CleanColumnNames())),
+                ('trained_model',
+                 <catboost.core.CatBoostRegressor object at 0x000001F9A66F19F0>)]), probability_threshold=None, encoded_labels=False, raw_score=False, round=4, verbose=True, ml_usecase=None, preprocess=True, encode_labels=<function _SupervisedExperiment.predict_model.<locals>.encode_labels at 0x000001F9A65E6D40>)
+2025-07-31 01:17:54,879:INFO:Checking exceptions
+2025-07-31 01:17:54,879:INFO:Preloading libraries
+2025-07-31 01:17:54,879:INFO:Set up data.
+2025-07-31 01:17:54,884:INFO:Set up index.
