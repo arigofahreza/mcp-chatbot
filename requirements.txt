@@ -10,6 +10,7 @@ sqlite-vec
 xlsxwriter
 langchain
 langchain_experimental
+psycopg2-binary
 matplotlib==3.7.5
 pandas==2.1.4
 pycaret==3.3.2
