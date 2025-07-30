@@ -272,7 +272,7 @@ async def chart_generator(python_code: str) -> str:
 
 @mcp.tool()
 async def services_forecast(
-        historical_data: str,
+        historical_data: List,
         input_date: str,
         model: str,
         kode_cabang: str,
@@ -289,8 +289,8 @@ async def services_forecast(
         pre-trained machine learning pipeline.
 
         Args:
-            historical_data (str):
-                Historical service data records taken from database result query
+            historical_data (list):
+                Historical service data records taken from database result query with format list json
             input_date (str):
                 The forecast target date in "YYYY-MM" format.
             model (str):
@@ -314,7 +314,7 @@ async def services_forecast(
         """
     if not historical_data:
         return 'Do not have historical data, cannot forecast data'
-    kategori_odometer = klasifikasi_odometer(odometer)
+    kategori_odometer = klasifikasi_odometer(int(odometer))
     current_data = {
         'YearMonth': input_date,
         'Model': model,
@@ -325,7 +325,6 @@ async def services_forecast(
         'Total_Diskon': int(total_diskon),
         'Persen_Diskon': float(persen_diskon)
     }
-    historical_data = json.loads(historical_data)
     historical_data.append(current_data)
     df = pd.DataFrame(historical_data)
     df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
@@ -348,7 +347,7 @@ async def services_forecast(
 
 @mcp.tool()
 async def spareparts_forecast(
-        historical_data: str,
+        historical_data: List,
         input_date: str,
         customer: str,
         discount: str,
@@ -363,7 +362,7 @@ async def spareparts_forecast(
     './ml_model/suzuki_sparepart_month_v1'.
 
     Args:
-        historical_data (str): Past customer transactions.
+        historical_data (list): Past customer data records taken from database result query transactions with format list json.
         input_date (str): Forecast month in 'YYYY-MM' format.
         customer (str): Customer name.
         discount (str): Discount value.
@@ -386,7 +385,6 @@ async def spareparts_forecast(
         'Transaction Count': 1,
         'beli': 1,
     }
-    historical_data = json.loads(historical_data)
     historical_data.append(current_data)
     df = pd.DataFrame(historical_data)
     df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")

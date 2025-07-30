@@ -94,15 +94,15 @@ class WorkflowTracer:
                 while "  " in compressed:
                     compressed = compressed.replace("  ", " ")
                 # Truncate if too long
-                # if len(compressed) > max_length:
-                #     return compressed[: max_length - 3] + "..."
+                if len(compressed) > max_length:
+                    return compressed[: max_length - 3] + "..."
                 return compressed
         except Exception:
             pass
 
         # If not JSON or couldn't compress, just truncate if needed
-        # if len(content) > max_length:
-        #     return content[: max_length - 3] + "..."
+        if len(content) > max_length:
+            return content[: max_length - 3] + "..."
         return content
 
     def render_tree_workflow(self) -> str:
@@ -177,8 +177,8 @@ class WorkflowTracer:
                 tool_name = event.metadata.get("tool_name", "unknown")
                 if "arguments" in event.metadata:
                     args = json.dumps(event.metadata["arguments"])
-                    # if len(args) > 50:
-                    #     args = args[:47] + "..."
+                    if len(args) > 50:
+                        args = args[:47] + "..."
                     output.append(
                         f"{colorama.Fore.CYAN}{detail_prefix}"
                         f"└── Tool: {colorama.Fore.WHITE}{tool_name}"
@@ -208,8 +208,8 @@ class WorkflowTracer:
                 # Add abbreviated result if available and successful
                 if success and "result" in event.metadata and event.metadata["result"]:
                     result = str(event.metadata["result"])
-                    # if len(result) > 50:
-                    #     result = result[:47] + "..."
+                    if len(result) > 50:
+                        result = result[:47] + "..."
                     output.append(
                         f"{colorama.Fore.CYAN}{detail_prefix}"
                         f"   └── Result: {colorama.Fore.WHITE}{result}"

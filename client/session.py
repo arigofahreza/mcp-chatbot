@@ -42,10 +42,11 @@ SYSTEM_MESSAGE = (
     "so you will have always multiple tools (relevant_table tool and get_data tool) to be used"
     "you must execute all the tools directly"
     "2. if the user ask about metadata only or related table, you will use relevant table tool to get schema."
-    "3. if the user ask about predictive analytic, you will chain multiple tools start from (relevant table tool -> get_data tool -> *_forecast tools)"
-    "before executing *_forecast tools, you will execute get_data tool to get only last 1 historical data and after that execute *_forecast tools with that data for argument"
-    "for service forecast you will predict for Total Biaya with same Model, Kode Cabang, Tipe Kendaraan"
-    "for sparepart forecast you will predict for Total Qty with same Nama Customer, Tipe Part"
+    "3. if the user ask about predictive analytic, you must execute multiple tools start from (relevant _table tool -> get_data tool -> *_forecast tools)"
+    "before executing *_forecast tools, you will execute get_data tool to get only last 1 historical data and after that execute *_forecast tools with that data for argument, because you only need 1 last data"
+    "if you decide to use service forecast you will predict for Total Biaya and query data historical with condition Model, Kode Cabang, Tipe Kendaraan from input"
+    "if you decide to use sparepart forecast you will predict for Total Qty and query data historical with Nama Customer, Tipe Part from input"
+    "after you get historical data, use the data as argument and execute the forecast tools"
     "4. if the user ask for char or display, you will make python script based on user input and the data"
     "the purpose of the python script is make an image with return base64_string"
     "then use chart_generator tool. \n\n"
@@ -204,14 +205,19 @@ class ChatSession:
         try:
             tool_call = json.loads(llm_response)
             if (
-                isinstance(tool_call, dict)
-                and "tool" in tool_call
-                and "arguments" in tool_call
+                    isinstance(tool_call, dict)
+                    and "tool" in tool_call
+                    and "arguments" in tool_call
             ):
                 return [tool_call]
+            elif (
+                    isinstance(tool_call, list)
+            ):
+                for tool in tool_call:
+                    if isinstance(tool, dict) and 'tool' in tool and 'arguments' in tool:
+                        return [tool]
         except json.JSONDecodeError:
             pass
-
         # Try to extract all JSON objects from the response
         tool_calls = []
         # Regex pattern to match JSON objects
@@ -529,8 +535,7 @@ class ChatSession:
         # Record LLM response
         self.workflow_tracer.add_event(
             WorkflowEventType.LLM_RESPONSE,
-            # llm_response[:50] if len(llm_response) > 50 else llm_response,
-            llm_response
+            llm_response[:50] if len(llm_response) > 50 else llm_response,
         )
 
         self.messages.append({"role": "assistant", "content": llm_response})
@@ -550,7 +555,7 @@ class ChatSession:
         while iteration < max_iterations:
             # Extract tool call data
             tool_call_data_list = self._extract_tool_calls(llm_response)
-
+            print(tool_call_data_list)
             if not tool_call_data_list:
                 # No tool calls, return final result
                 self.workflow_tracer.add_event(
@@ -589,7 +594,6 @@ class ChatSession:
 
                 # Execute tool call
                 tool_call = await self._execute_tool_call(tool_call_data)
-                print(tool_call)
                 tool_calls.append(tool_call)
 
                 # Record tool result
@@ -640,8 +644,7 @@ class ChatSession:
             # Record LLM response
             self.workflow_tracer.add_event(
                 WorkflowEventType.LLM_RESPONSE,
-                # llm_response[:50] if len(llm_response) > 50 else llm_response,
-                llm_response
+                llm_response[:50] if len(llm_response) > 50 else llm_response,
             )
 
             self.messages.append({"role": "assistant", "content": llm_response})
