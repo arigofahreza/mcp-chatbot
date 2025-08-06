@@ -46,6 +46,7 @@ SYSTEM_MESSAGE = (
     "before executing *_forecast tools, you will execute get_data tool to get only last 1 historical data and after that execute *_forecast tools with that data for argument, because you only need 1 last data"
     "if you decide to use service forecast you will predict for Total Biaya and query data historical with condition Model, Kode Cabang, Tipe Kendaraan from input"
     "if you decide to use sparepart forecast you will predict for Total Qty and query data historical with Nama Customer, Tipe Part from input"
+    "if you decide to use quantity forecast for loesche, you dont need historical data, you just need input from user"
     "after you get historical data, use the data as argument in the form of list json (not string) and execute the forecast tools"
     "4. if the user ask for char or display, you will make python script based on user input and the data"
     "the purpose of the python script is make an image with return base64_string"

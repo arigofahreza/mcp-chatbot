@@ -169,7 +169,7 @@ async def metadata_delete(
     conn, cur = sqlite_client()
     try:
         query = generate_sqlite_delete()
-        cur.execute(query, table_name)
+        cur.execute(query, (table_name,))
         conn.commit()
         return f"Successfully delete data with name {table_name}"
     except Exception as e:
@@ -177,7 +177,7 @@ async def metadata_delete(
 
 
 @mcp.tool()
-async def relevant_table(prompt: str, provider: str) -> dict:
+async def relevant_table(prompt: str, provider: str) -> str|dict:
     """This tool is mandatory before executing *_data_get tool.
        Fetch the relevant table base on natural language query from user using vector
 
@@ -202,7 +202,10 @@ async def relevant_table(prompt: str, provider: str) -> dict:
         cur.execute(select_query, (rowid,))
         rows = cur.fetchall()
         metadata_results = [dict(row) for row in rows]
-        return metadata_results[0]
+        if metadata_results:
+            return metadata_results[0]
+        else:
+            return "relevant table not found"
     except Exception as e:
         raise Exception(f"Failed to get relevant table: {str(e)}") from e
 
@@ -269,6 +272,46 @@ async def chart_generator(python_code: str) -> str:
         return output
     except Exception as e:
         raise Exception(f"Failed to generate chart from code: {str(e)}") from e
+
+@mcp.tool()
+async def quantity_forecast_with_code_word(
+        year: str,
+        month: str,
+        code_word: str,
+        material_number: str,
+        country: str
+        ) -> List[dict]:
+    """
+        Predicts the quantity forecast for a specific material based on given metadata.
+
+        This function uses a pre-trained machine learning pipeline to predict monthly quantity
+        based on the year, month, code word, material number, and country. It constructs a DataFrame
+        from the provided input parameters, loads the trained model pipeline, performs prediction,
+        and returns the forecasted result.
+
+        Args:
+            year (str): The year for the forecast (e.g., "2025").
+            month (str): The month for the forecast (e.g., "08").
+            code_word (str): The descriptive code word associated with the material or context.
+            material_number (str): The material number (e.g., "10295146").
+            country (str): The name of the country (e.g., "Vietnam").
+
+        Returns:
+            List[dict]: A list containing the prediction result(s) as dictionaries.
+        """
+    current_data = {
+        'Year': int(year),
+        'Month': int(month),
+        'Code Word': code_word,
+        'Material Number': int(material_number),
+        'Country': country
+    }
+    df_predict = pd.DataFrame([current_data])
+    model_path = os.path.join('ml_model', 'loesche_quantity_month_v1')
+    pipeline = load_model(model_path)
+    holdout_test = predict_model(pipeline, data=df_predict)
+    return holdout_test.to_dict(orient='records')
+
 
 
 @mcp.tool()
