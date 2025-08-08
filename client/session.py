@@ -50,7 +50,7 @@ SYSTEM_MESSAGE = (
     "after you get historical data, use the data as argument in the form of list json (not string) and execute the forecast tools"
     "4. if the user ask for char or display, you will make python script based on user input and the data"
     "the purpose of the python script is make an image with return base64_string"
-    "then use chart_generator tool. \n\n"
+    "then use chart_generator tool. and return only you success or not for creating chart \n\n"
     "IMPORTANT: ALWAYS USE ALL THE TOOL DIRECTLY TO EXECUTE no need to ask permission. IF you prepared the query just execute the get_data_tool after "
     "When you need to use a tool or multiple tool, you must respond with"
     "the exact JSON object format below:\n"
