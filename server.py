@@ -277,24 +277,24 @@ async def chart_generator(python_code: str) -> str:
 async def quantity_forecast_with_code_word(
         year: str,
         month: str,
-        code_word: str,
-        material_number: str,
-        country: str
+        code_word: Optional[str],
+        material_number: Optional[str],
+        country: Optional[str]
         ) -> List[dict]:
     """
         Predicts the quantity forecast for a specific material based on given metadata.
 
         This function uses a pre-trained machine learning pipeline to predict monthly quantity
-        based on the year, month, code word, material number, and country. It constructs a DataFrame
+        based on the year, month, and code word (optional), material number (optional) and country (optional). It constructs a DataFrame
         from the provided input parameters, loads the trained model pipeline, performs prediction,
         and returns the forecasted result.
 
         Args:
             year (str): The year for the forecast (e.g., "2025").
             month (str): The month for the forecast (e.g., "08").
-            code_word (str): The descriptive code word associated with the material or context.
-            material_number (str): The material number (e.g., "10295146").
-            country (str): The name of the country (e.g., "Vietnam").
+            code_word: Optional[str]: The descriptive code word associated with the material or context, this input is optional.
+            material_number: Optional[str]: The material number (e.g., "10295146"), this input is optional.
+            country: Optional[str]: The name of the country (e.g., "Vietnam"), this input is optional.
 
         Returns:
             List[dict]: A list containing the prediction result(s) as dictionaries.
@@ -302,16 +302,26 @@ async def quantity_forecast_with_code_word(
     current_data = {
         'Year': int(year),
         'Month': int(month),
-        'Code Word': code_word,
-        'Material Number': int(material_number),
-        'Country': country
     }
+    if code_word:
+        current_data['Code Word'] = code_word
+    if material_number:
+        current_data['Material Number'] = int(material_number)
+    if country:
+        current_data['Country'] = country
     df_predict = pd.DataFrame([current_data])
-    model_path = os.path.join('ml_model', 'loesche_quantity_month_v1')
+    model_path = ''
+    if code_word and material_number and country:
+        model_path = os.path.join('ml_model', 'loesche_quantity_month_v1')
+    elif code_word and country and not material_number:
+        model_path = os.path.join('ml_model', 'loesche_quantity_month_v2')
+    elif country and not code_word and not material_number:
+        model_path = os.path.join('ml_model', 'loesche_quantity_month_v3')
+    elif code_word and not country and not material_number:
+        model_path = os.path.join('ml_model', 'loesche_quantity_month_v4')
     pipeline = load_model(model_path)
     holdout_test = predict_model(pipeline, data=df_predict)
     return holdout_test.to_dict(orient='records')
-
 
 
 @mcp.tool()
