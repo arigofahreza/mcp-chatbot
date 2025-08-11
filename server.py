@@ -3,6 +3,8 @@ import json
 import os
 import re
 from typing import List, Optional
+
+import numpy as np
 import pandas as pd
 from langchain_experimental.utilities import PythonREPL
 from mcp.server.fastmcp import FastMCP
@@ -280,10 +282,10 @@ async def chart_generator(python_code: str) -> str:
 async def quantity_forecast_with_code_word(
         year: str,
         month: str,
-        code_word: Optional[str],
-        material_number: Optional[str],
-        country: Optional[str]
-        ) -> List[dict]:
+        code_word: Optional[str] = None,
+        country: Optional[str] = None,
+        material_number: Optional[str] = None,
+        ) -> list[dict]:
     """
         Predicts the quantity forecast for a specific material based on given metadata.
 
@@ -295,173 +297,165 @@ async def quantity_forecast_with_code_word(
         Args:
             year (str): The year for the forecast (e.g., "2025").
             month (str): The month for the forecast (e.g., "08").
-            code_word: Optional[str]: The descriptive code word associated with the material or context, this input is optional.
-            material_number: Optional[str]: The material number (e.g., "10295146"), this input is optional.
-            country: Optional[str]: The name of the country (e.g., "Vietnam"), this input is optional.
+            code_word: Optional[str]: = np.nan The descriptive code word associated with the material or context, this input is optional with default value np.nan.
+            material_number: Optional[str]: = np.nan The material number (e.g., "10295146"), this input is optional with default value np.nan.
+            country: Optional[str]: = np.nan The name of the country (e.g., "Vietnam"), this input is optional with default value np.nan.
 
         Returns:
             List[dict]: A list containing the prediction result(s) as dictionaries.
         """
+    code_word = np.nan if code_word is None else code_word
+    material_number = np.nan if material_number is None else int(material_number)
+    country = np.nan if country is None else country
     current_data = {
         'Year': int(year),
         'Month': int(month),
+        'Code Word': code_word,
+        'Material Number': material_number,
+        'Country': country
     }
-    if code_word:
-        current_data['Code Word'] = code_word
-    if material_number:
-        current_data['Material Number'] = int(material_number)
-    if country:
-        current_data['Country'] = country
     df_predict = pd.DataFrame([current_data])
-    model_path = ''
-    if code_word and material_number and country:
-        model_path = os.path.join('ml_model', 'loesche_quantity_month_v1')
-    elif code_word and country and not material_number:
-        model_path = os.path.join('ml_model', 'loesche_quantity_month_v2')
-    elif country and not code_word and not material_number:
-        model_path = os.path.join('ml_model', 'loesche_quantity_month_v3')
-    elif code_word and not country and not material_number:
-        model_path = os.path.join('ml_model', 'loesche_quantity_month_v4')
+    model_path = os.path.join('ml_model', 'loesche_quantity_month_v6')
     pipeline = load_model(model_path)
     holdout_test = predict_model(pipeline, data=df_predict)
     return holdout_test.to_dict(orient='records')
 
 
-@mcp.tool()
-async def services_forecast(
-        historical_data: List,
-        input_date: str,
-        model: str,
-        kode_cabang: str,
-        odometer: str,
-        tipe_kendaraan: str,
-        total_diskon: str,
-        persen_diskon: str,
-) -> str | List[dict]:
-    """
-        Generate a service forecast based on historical service data and current input attributes.
+# @mcp.tool()
+# async def services_forecast(
+#         historical_data: List,
+#         input_date: str,
+#         model: str,
+#         kode_cabang: str,
+#         odometer: str,
+#         tipe_kendaraan: str,
+#         total_diskon: str,
+#         persen_diskon: str,
+# ) -> str | List[dict]:
+#     """
+#         Generate a service forecast based on historical service data and current input attributes.
+#
+#         This function appends the new input scenario to the historical dataset, engineers features
+#         (such as lag variables and odometer classification), and runs predictions using a
+#         pre-trained machine learning pipeline.
+#
+#         Args:
+#             historical_data (list):
+#                 Historical service data records taken from database result query with format list json
+#             input_date (str):
+#                 The forecast target date in "YYYY-MM" format.
+#             model (str):
+#                 Vehicle model name.
+#             kode_cabang (str):
+#                 Service branch code.
+#             odometer (str):
+#                 Current odometer reading, used for mileage category classification.
+#             tipe_kendaraan (str):
+#                 Vehicle type (e.g., sedan, truck, SUV).
+#             total_diskon (str):
+#                 Discount value applied in the forecast scenario.
+#             persen_diskon (str):
+#                 Maximum percent discount for a service
+#
+#         Returns:
+#             dict:
+#                 A dictionary representing the predicted results for the latest input scenario.
+#             str:
+#                 A message indicating missing historical data if none is provided.
+#         """
+#     if not historical_data:
+#         return 'Do not have historical data, cannot forecast data'
+#     kategori_odometer = klasifikasi_odometer(int(odometer))
+#     current_data = {
+#         'YearMonth': input_date,
+#         'Model': model,
+#         'Kode Cabang': int(kode_cabang),
+#         'Tipe Kendaraan': tipe_kendaraan,
+#         'Kategori Odometer': kategori_odometer,
+#         'Jumlah_Service': 1,
+#         'Total_Diskon': int(total_diskon),
+#         'Persen_Diskon': float(persen_diskon)
+#     }
+#     historical_data.append(current_data)
+#     df = pd.DataFrame(historical_data)
+#     df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
+#     df['Bulan'] = df['YearMonth'].dt.month
+#     df['Tahun'] = df['YearMonth'].dt.year
+#     services_stats = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan', 'Kategori Odometer', 'Bulan', 'Tahun']).agg(
+#         avg_discount=('Total_Diskon', 'mean')
+#     ).reset_index()
+#     df = df.merge(services_stats, on=['Model', 'Kode Cabang', 'Tipe Kendaraan', 'Kategori Odometer', 'Bulan', 'Tahun'],
+#                   how='left')
+#
+#     df['diskon_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Diskon'].shift(1).fillna(0)
+#     df['biaya_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Biaya'].shift(1).fillna(0)
+#     last_row_df = df.tail(1).reset_index(drop=True)
+#     last_row_df = last_row_df.drop(columns=['Total_Biaya'])
+#     model_path = os.path.join('ml_model', 'suzuki_sales_month_v1')
+#     pipeline = load_model(model_path)
+#     holdout_test = predict_model(pipeline, data=last_row_df)
+#     return holdout_test.to_dict(orient='records')
 
-        This function appends the new input scenario to the historical dataset, engineers features
-        (such as lag variables and odometer classification), and runs predictions using a
-        pre-trained machine learning pipeline.
 
-        Args:
-            historical_data (list):
-                Historical service data records taken from database result query with format list json
-            input_date (str):
-                The forecast target date in "YYYY-MM" format.
-            model (str):
-                Vehicle model name.
-            kode_cabang (str):
-                Service branch code.
-            odometer (str):
-                Current odometer reading, used for mileage category classification.
-            tipe_kendaraan (str):
-                Vehicle type (e.g., sedan, truck, SUV).
-            total_diskon (str):
-                Discount value applied in the forecast scenario.
-            persen_diskon (str):
-                Maximum percent discount for a service
-
-        Returns:
-            dict:
-                A dictionary representing the predicted results for the latest input scenario.
-            str:
-                A message indicating missing historical data if none is provided.
-        """
-    if not historical_data:
-        return 'Do not have historical data, cannot forecast data'
-    kategori_odometer = klasifikasi_odometer(int(odometer))
-    current_data = {
-        'YearMonth': input_date,
-        'Model': model,
-        'Kode Cabang': int(kode_cabang),
-        'Tipe Kendaraan': tipe_kendaraan,
-        'Kategori Odometer': kategori_odometer,
-        'Jumlah_Service': 1,
-        'Total_Diskon': int(total_diskon),
-        'Persen_Diskon': float(persen_diskon)
-    }
-    historical_data.append(current_data)
-    df = pd.DataFrame(historical_data)
-    df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
-    df['Bulan'] = df['YearMonth'].dt.month
-    df['Tahun'] = df['YearMonth'].dt.year
-    services_stats = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan', 'Kategori Odometer', 'Bulan', 'Tahun']).agg(
-        avg_discount=('Total_Diskon', 'mean')
-    ).reset_index()
-    df = df.merge(services_stats, on=['Model', 'Kode Cabang', 'Tipe Kendaraan', 'Kategori Odometer', 'Bulan', 'Tahun'],
-                  how='left')
-
-    df['diskon_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Diskon'].shift(1).fillna(0)
-    df['biaya_lalu'] = df.groupby(['Model', 'Kode Cabang', 'Tipe Kendaraan'])['Total_Biaya'].shift(1).fillna(0)
-    last_row_df = df.tail(1).reset_index(drop=True)
-    last_row_df = last_row_df.drop(columns=['Total_Biaya'])
-    model_path = os.path.join('ml_model', 'suzuki_sales_month_v1')
-    pipeline = load_model(model_path)
-    holdout_test = predict_model(pipeline, data=last_row_df)
-    return holdout_test.to_dict(orient='records')
-
-
-@mcp.tool()
-async def spareparts_forecast(
-        historical_data: List,
-        input_date: str,
-        customer: str,
-        discount: str,
-        gross: str,
-        tipe_part: str
-) -> str | List[dict]:
-    """
-    Forecast sparepart purchase behavior for a customer using historical monthly data and a trained ML model.
-
-    Appends a new input record to historical data, engineers time and lag features,
-    and predicts whether the customer will make a purchase using the model at
-    './ml_model/suzuki_sparepart_month_v1'.
-
-    Args:
-        historical_data (list): Past customer data records taken from database result query transactions with format list json.
-        input_date (str): Forecast month in 'YYYY-MM' format.
-        customer (str): Customer name.
-        discount (str): Discount value.
-        gross (str): Gross amount.
-        tipe_part (str): Spare part type.
-
-    Returns:
-        dict: Prediction result for the input row.
-        str: Message if no historical data is available.
-    """
-    if not historical_data:
-        return 'Do not have historical data, cannot forecast data'
-    current_data = {
-        'YearMonth': input_date,
-        'Nama Customer': customer,
-        'Discount': int(discount),
-        'Gross': int(gross),
-        'Persen_Diskon': round((int(discount) / int(gross)) * 100, 2),
-        'Tipe Part': tipe_part,
-        'Transaction Count': 1,
-        'beli': 1,
-    }
-    historical_data.append(current_data)
-    df = pd.DataFrame(historical_data)
-    df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
-    df['Bulan'] = df['YearMonth'].dt.month
-    df['Tahun'] = df['YearMonth'].dt.year
-    sparepart_stats = df.groupby(['Nama Customer', 'Bulan', 'Tahun']).agg(
-        avg_discount=('Discount', 'mean')
-    ).reset_index()
-    df = df.merge(sparepart_stats, on=['Nama Customer', 'Bulan', 'Tahun'], how='left')
-
-    df['diskon_lalu'] = df.groupby('Nama Customer')['Discount'].shift(1).fillna(0)
-    df['qty_lalu'] = df.groupby('Nama Customer')['Total Qty'].shift(1).fillna(0)
-
-    last_row_df = df.tail(1).reset_index(drop=True)
-    last_row_df = last_row_df.drop(columns=['Total Qty'])
-    model_path = os.path.join('ml_model', 'suzuki_sparepart_month_v1')
-    pipeline = load_model(model_path)
-    holdout_test = predict_model(pipeline, data=last_row_df)
-    return holdout_test.to_dict(orient='records')
+# @mcp.tool()
+# async def spareparts_forecast(
+#         historical_data: List,
+#         input_date: str,
+#         customer: str,
+#         discount: str,
+#         gross: str,
+#         tipe_part: str
+# ) -> str | List[dict]:
+#     """
+#     Forecast sparepart purchase behavior for a customer using historical monthly data and a trained ML model.
+#
+#     Appends a new input record to historical data, engineers time and lag features,
+#     and predicts whether the customer will make a purchase using the model at
+#     './ml_model/suzuki_sparepart_month_v1'.
+#
+#     Args:
+#         historical_data (list): Past customer data records taken from database result query transactions with format list json.
+#         input_date (str): Forecast month in 'YYYY-MM' format.
+#         customer (str): Customer name.
+#         discount (str): Discount value.
+#         gross (str): Gross amount.
+#         tipe_part (str): Spare part type.
+#
+#     Returns:
+#         dict: Prediction result for the input row.
+#         str: Message if no historical data is available.
+#     """
+#     if not historical_data:
+#         return 'Do not have historical data, cannot forecast data'
+#     current_data = {
+#         'YearMonth': input_date,
+#         'Nama Customer': customer,
+#         'Discount': int(discount),
+#         'Gross': int(gross),
+#         'Persen_Diskon': round((int(discount) / int(gross)) * 100, 2),
+#         'Tipe Part': tipe_part,
+#         'Transaction Count': 1,
+#         'beli': 1,
+#     }
+#     historical_data.append(current_data)
+#     df = pd.DataFrame(historical_data)
+#     df['YearMonth'] = pd.to_datetime(df['YearMonth'], format="%Y-%m")
+#     df['Bulan'] = df['YearMonth'].dt.month
+#     df['Tahun'] = df['YearMonth'].dt.year
+#     sparepart_stats = df.groupby(['Nama Customer', 'Bulan', 'Tahun']).agg(
+#         avg_discount=('Discount', 'mean')
+#     ).reset_index()
+#     df = df.merge(sparepart_stats, on=['Nama Customer', 'Bulan', 'Tahun'], how='left')
+#
+#     df['diskon_lalu'] = df.groupby('Nama Customer')['Discount'].shift(1).fillna(0)
+#     df['qty_lalu'] = df.groupby('Nama Customer')['Total Qty'].shift(1).fillna(0)
+#
+#     last_row_df = df.tail(1).reset_index(drop=True)
+#     last_row_df = last_row_df.drop(columns=['Total Qty'])
+#     model_path = os.path.join('ml_model', 'suzuki_sparepart_month_v1')
+#     pipeline = load_model(model_path)
+#     holdout_test = predict_model(pipeline, data=last_row_df)
+#     return holdout_test.to_dict(orient='records')
 
 
 def main():
