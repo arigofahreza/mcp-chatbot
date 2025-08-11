@@ -63,7 +63,28 @@ class OpenAIClient:
             if content is not None:
                 yield content
 
-    def get_embedding_response(self, datas: list[str]) -> list:
+    def get_embedding_response(self, datas: list[dict]) -> list:
+        """Get a response from the embedding LLM.
+
+        Args:
+            datas: list of sentence to embed.
+
+        Returns:
+            The LLM's embedding response as a list.
+        """
+        input_datas = [data.get('llm') for data in datas]
+        id = [data.get('id') for data in datas]
+        response = self.client.embeddings.create(
+            model=self.embedding_model_name,
+            input=input_datas,
+            dimensions=1024
+        )
+        data = []
+        for index, record in enumerate(response.data):
+            data.append((id[index], serialize_f32(record.embedding)))
+        return data
+
+    def get_embedding(self, datas: list[str]):
         """Get a response from the embedding LLM.
 
         Args:
@@ -79,7 +100,7 @@ class OpenAIClient:
         )
         data = []
         for record in response.data:
-            data.append((record.index+1, serialize_f32(record.embedding)))
+            data.append((serialize_f32(record.embedding)))
         return data
 
 

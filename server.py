@@ -81,6 +81,7 @@ def create_vector_table():
 async def metadata_create(
         table_name: str,
         database_type: str,
+        schema: str,
         description: str,
         metadatas: List[Metadata]
 ) -> str:
@@ -89,6 +90,7 @@ async def metadata_create(
         Args:
             table_name: Name of the table to create
             database_type: Type of database ("postgresql", "oracledb")
+            schema: Schema of the table
             description: A description of the table that provides an overview of the table itself.
             metadatas: List metadata which describes the schema and metadata of the table, including column names, data types, and descriptions of each column.
 
@@ -97,7 +99,7 @@ async def metadata_create(
     try:
         query = generate_sqlite_insert()
         json_metadata = json.dumps([metadata.model_dump_json() for metadata in metadatas])
-        cur.execute(query, (table_name, database_type, description, json_metadata))
+        cur.execute(query, (table_name, database_type, schema, description, json_metadata))
         conn.commit()
         return f"Successfully insert data with name {table_name}"
     except Exception as e:
@@ -134,6 +136,7 @@ async def metadata_get(
 async def metadata_update(
         table_name: str,
         database_type: str,
+        schema: str,
         description: str,
         metadata: Metadata
 ) -> str:
@@ -142,6 +145,7 @@ async def metadata_update(
         Args:
             table_name: Name of the table to update in
             database_type: Type of database ("postgresql", "oracledb")
+            schema: Schema of database
             description: A new description of the table that provides an overview of the table itself. Provide previous value if no update
             metadata: A new metadata which describes the schema and metadata of the table, including column names, data types, and descriptions of each column. Provide previous value if no update
 
@@ -150,7 +154,7 @@ async def metadata_update(
     try:
         query = generate_sqlite_update()
         json_metadata = metadata.model_dump_json()
-        cur.execute(query, (table_name, database_type, description, json_metadata, table_name))
+        cur.execute(query, (table_name, database_type, schema, description, json_metadata, table_name))
         conn.commit()
         return f"Successfully update data with name {table_name} | description {description} | metadata {json_metadata}"
     except Exception as e:
@@ -192,9 +196,8 @@ async def relevant_table(prompt: str, provider: str) -> str|dict:
     conn, cur = get_sqlite_client()
     try:
         query = generate_sqlite_select_vector()
-        embedding_results = client.get_embedding_response([prompt])
-        datas = embedding_results[0]
-        rows = cur.execute(query, (datas[1],)).fetchall()
+        embedding_results = client.get_embedding([prompt])
+        rows = cur.execute(query, (embedding_results[0],)).fetchall()
         results = [dict(row) for row in rows]
         result = results[0]
         rowid = result.get('rowid')

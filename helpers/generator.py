@@ -18,7 +18,14 @@ def sync_metadata(client):
         query = generate_sqlite_select_schema()
         cur.execute(query)
         rows = cur.fetchall()
-        results = [json.dumps(dict(row)) for row in rows]
+        results = []
+        for row in rows:
+            dict_row = dict(row)
+            data = {
+                'id': dict_row.pop('id'),
+                'llm': json.dumps(dict_row)
+            }
+            results.append(data)
         embedding_results = client.get_embedding_response(results)
         delete_query = generate_sqlite_delete_vector()
         cur.execute(delete_query)
