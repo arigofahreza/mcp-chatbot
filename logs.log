@@ -3894,3 +3894,63 @@
 2025-08-11 17:11:00,533:INFO:Preloading libraries
 2025-08-11 17:11:00,533:INFO:Set up data.
 2025-08-11 17:11:00,537:INFO:Set up index.
+2025-08-13 13:42:36,129:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:36,129:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:36,129:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:36,129:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:39,222:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:39,222:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:39,222:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:42:39,222:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:09,606:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:09,606:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:09,606:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:09,606:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:13,341:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:13,341:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:13,341:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:45:13,341:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-13 13:46:41,296:INFO:Initializing load_model()
+2025-08-13 13:46:41,296:INFO:load_model(model_name=ml_model\loesche_quantity_month_v7, platform=None, authentication=None, verbose=True)
+2025-08-13 13:46:42,026:INFO:Initializing predict_model()
+2025-08-13 13:46:42,026:INFO:predict_model(self=<pycaret.regression.oop.RegressionExperiment object at 0x00000149BE4DFF40>, estimator=Pipeline(memory=Memory(location=None),
+         steps=[('numerical_imputer',
+                 TransformerWrapper(include=['Year', 'Month',
+                                             'Material Number'],
+                                    transformer=SimpleImputer())),
+                ('categorical_imputer',
+                 TransformerWrapper(include=['Country', 'Code Word',
+                                             'Item description'],
+                                    transformer=SimpleImputer(strategy='most_frequent'))),
+                ('onehot_encoding',
+                 TransformerWrapper(include=['...
+                ('rest_encoding',
+                 TransformerWrapper(include=['Code Word', 'Item description'],
+                                    transformer=TargetEncoder(cols=['Code Word',
+                                                                    'Item '
+                                                                    'description'],
+                                                              handle_missing='return_nan'))),
+                ('normalize', TransformerWrapper(transformer=StandardScaler())),
+                ('clean_column_names',
+                 TransformerWrapper(transformer=CleanColumnNames())),
+                ('trained_model', AdaBoostRegressor(random_state=123))]), probability_threshold=None, encoded_labels=False, raw_score=False, round=4, verbose=True, ml_usecase=None, preprocess=True, encode_labels=<function _SupervisedExperiment.predict_model.<locals>.encode_labels at 0x00000149BE353520>)
+2025-08-13 13:46:42,026:INFO:Checking exceptions
+2025-08-13 13:46:42,026:INFO:Preloading libraries
+2025-08-13 13:46:42,044:INFO:Set up data.
+2025-08-13 13:46:42,064:INFO:Set up index.

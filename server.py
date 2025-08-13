@@ -285,12 +285,13 @@ async def quantity_forecast_with_code_word(
         code_word: Optional[str] = None,
         country: Optional[str] = None,
         material_number: Optional[str] = None,
+        item_description: Optional[str] = None
         ) -> list[dict]:
     """
         Predicts the quantity forecast for a specific material based on given metadata.
 
         This function uses a pre-trained machine learning pipeline to predict monthly quantity
-        based on the year, month, and code word (optional), material number (optional) and country (optional). It constructs a DataFrame
+        based on the year, month, and code word (optional), material number (optional), country (optional) and item_description (optional). It constructs a DataFrame
         from the provided input parameters, loads the trained model pipeline, performs prediction,
         and returns the forecasted result.
 
@@ -300,6 +301,7 @@ async def quantity_forecast_with_code_word(
             code_word: Optional[str]: = np.nan The descriptive code word associated with the material or context, this input is optional with default value np.nan.
             material_number: Optional[str]: = np.nan The material number (e.g., "10295146"), this input is optional with default value np.nan.
             country: Optional[str]: = np.nan The name of the country (e.g., "Vietnam"), this input is optional with default value np.nan.
+            item_description: Optional[str] = np.nan The material name (e.g., "CLAMPING SLEEVE"), this input is optional with default value np.nan
 
         Returns:
             List[dict]: A list containing the prediction result(s) as dictionaries.
@@ -307,15 +309,17 @@ async def quantity_forecast_with_code_word(
     code_word = np.nan if code_word is None else code_word
     material_number = np.nan if material_number is None else int(material_number)
     country = np.nan if country is None else country
+    item_description = np.nan if item_description is None else item_description
     current_data = {
         'Year': int(year),
         'Month': int(month),
         'Code Word': code_word,
         'Material Number': material_number,
-        'Country': country
+        'Country': country,
+        'Item description': item_description
     }
     df_predict = pd.DataFrame([current_data])
-    model_path = os.path.join('ml_model', 'loesche_quantity_month_v6')
+    model_path = os.path.join('ml_model', 'loesche_quantity_month_v7')
     pipeline = load_model(model_path)
     holdout_test = predict_model(pipeline, data=df_predict)
     return holdout_test.to_dict(orient='records')
