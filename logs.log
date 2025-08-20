@@ -4422,3 +4422,45 @@
 2025-08-20 11:29:30,171:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_updateArguments" shadows an attribute in parent "ArgModelBase"
   warnings.warn(
 
+2025-08-20 13:02:38,082:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:02:38,083:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:02:38,083:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:02:38,083:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:02:38,945:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_createArguments" shadows an attribute in parent "ArgModelBase"
+  warnings.warn(
+
+2025-08-20 13:02:38,948:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_updateArguments" shadows an attribute in parent "ArgModelBase"
+  warnings.warn(
+
+2025-08-20 13:03:20,533:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:20,534:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:20,534:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:20,534:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:21,417:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_createArguments" shadows an attribute in parent "ArgModelBase"
+  warnings.warn(
+
+2025-08-20 13:03:21,422:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_updateArguments" shadows an attribute in parent "ArgModelBase"
+  warnings.warn(
+
+2025-08-20 13:03:26,499:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:26,499:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:26,499:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:26,499:WARNING:
+'cuml' is a soft dependency and not included in the pycaret installation. Please run: `pip install cuml` to install.
+2025-08-20 13:03:27,379:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_createArguments" shadows an attribute in parent "ArgModelBase"
+  warnings.warn(
+
+2025-08-20 13:03:27,384:WARNING:C:\Users\Arigo\PycharmProjects\mcp-chatbot\.venv\lib\site-packages\pydantic\_internal\_fields.py:198: UserWarning: Field name "schema" in "metadata_updateArguments" shadows an attribute in parent "ArgModelBase"
+  warnings.warn(
+

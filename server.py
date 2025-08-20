@@ -249,7 +249,7 @@ async def postgres_data_get(query: str) -> List[dict]:
     """
     conn, cur = postgres_client()
     try:
-        cur.execute(query.replace(';', '').replace('\\', ''))
+        cur.execute(query)
         result = cur.fetchall()
         return [dict(row) for row in result]
     except Exception as e:

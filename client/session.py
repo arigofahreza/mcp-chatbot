@@ -36,7 +36,7 @@ SYSTEM_MESSAGE = (
        - Jawab langsung dalam bahasa Indonesia.
        - Sertakan penjelasan singkat sebagai alasan.
     3. Jangan pernah mengakhiri jawaban sebelum masalah selesai.
-    4. Jangan buat query dengan menggunakan \ dan selalu kutip dengan double quote ""
+    4. Jangan buat query dengan menggunakan \ dan ;"
     
     ---
     
